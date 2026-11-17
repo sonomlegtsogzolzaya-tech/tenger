@@ -24,6 +24,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Task B32: one build version (this commit) on every module, stylesheet and data file, so a new deploy never
+      # runs with old cached files (GitHub Pages lets browsers cache them for 10 minutes).
+      - name: Stamp the build version
+        run: node .github/scripts/stamp-build.mjs static "${GITHUB_SHA::12}"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: static

@@ -2256,3 +2256,678 @@ No login, no server and no storage. Only the game page and its strings changed; 
   - Screenshots: `docs/screens/b27-header-390-2x.png`, `b27-header-1280-2x.png` and `b27-print-header.png`.
   - The tab icon itself cannot be seen in headless Chrome, so that check is the icon files loading, not a look at
     a real tab.
+
+### Task B27, 15 Nov 2026: the demo video re-made with only the main screens
+
+- `docs/screens/demo/vestigium-demo-30s.mp4`: **30.000 s** (900 frames), **2,678,935 bytes**, 1280×720, H.264
+  High, yuv420p, 30 fps, no audio, captions burned in, with `.srt` and a contact sheet. B26's video is kept as
+  `vestigium-demo-30s-v3.mp4`.
+- **Recording.** Recorded once on `tenger-dev` with Session A's B27a fix and the team logo (fe69382), using the
+  B26 cursor (real mouse events, eased curved moves, click ripples, smooth wheel scrolling).
+- **Shots:**
+  1. the 3D first screen with the cursor drifting;
+  2. a scroll to the full 3D map, the time slider dragged 1 → 6 (planets orbiting), then LIVE;
+  3. a scroll back up, a hover on WISE 0855 with its tooltip, then a click on Barnard's Star;
+  4. the blink with Contrast dragged 1 → 2.4;
+  5. "What changed", then "Estimate motion", with the result and the brightness chart;
+  6. the title card with the new logo and "Also inside: blind forecasts and a Planet X test".
+- **Shot 5 caption.** It is the user's sentence, "We measure how it moves from the pictures and check it against
+  Gaia." On screen: the measured finding (10.4174 ± 0.3267″/yr, Gaia DR3 10.3933, from `investigation.json`) and
+  the browser quick look (9.94 ± 0.48″/yr, labelled "not validated").
+- **Tooltip.** The WISE 0855 tooltip is the chip's own `title` text, drawn by the recording overlay, because a
+  screen recording never captures the browser's native tooltip.
+- **Checks:**
+  - The contact sheet shows the five screens and the title card.
+  - Every click hit its target, with the expected state after: live time, Barnard's Star open, contrast up, the
+    motion result and the chart. The cursor's largest step was 95 px per frame.
+  - With Barnard's Star open, no 3D label or control is visible or under the pointer.
+  - The years (2010, 2026) and the 168″ are read from the page.
+  - No page in the take showed "TENGER", "SPHEREx Blink" or "pythonhack000".
+- **Script changes** (`make-video.mjs`):
+  - Wheel scrolling is now time-driven and lets each step settle.
+  - The scroll down is made over the left column and by the first screen's full height, because the colour key
+    keeps the wheel to itself and the first screen is taller than 720 px.
+  - "Estimate motion" is brought into view with `scrollIntoView` before the cursor moves (the user's step).
+
+### Task B28, 15 Nov 2026: the motion count-up never goes below zero; the video holds the final value
+
+- **Site.** In "What changed" → "Estimate motion", the big number counted up from below zero (−0.49, −0.21). The
+  cause: the timer started from `performance.now()`, but a frame's own time can come slightly before that, so the
+  progress went negative and the ease-out turned it into a negative number.
+  - The count-up now uses `countUpShown(value, elapsedMs, durationMs)` in `static/js/describe.js`. It clamps the
+    progress to 0–1, so the number goes from 0 to the value and never below 0 or past it.
+  - The count-up now takes 0.8 s (was 0.9 s). With reduced motion the final value shows at once.
+  - Files: `static/js/main.js` (`countUp`), `static/js/describe.js`, `tests/describe.test.mjs` (new test: 0 at the
+    start and for a frame time before it, monotonic, never past the value, exactly the value at the end).
+- **Checks in Chrome** (Barnard's Star, 1280×720, the GPU):
+  - Reduced motion: the big number is written once, 9.94.
+  - No reduced motion: 46 steps from 0.00 to 9.94, final 0.82 s after the result (polled every 50 ms). The
+    lowest value shown was 0.00 and the highest 9.94.
+- **Video, shot 5** (`docs/screens/demo/make-video.mjs`). "What changed" is now clicked at 17.9 s, still under
+  shot 4's caption (the stage keeps blinking beside the panel). "Estimate motion" is clicked at 19.5 s; the quick
+  look tracks the star for about 1.3 s, then counts up.
+  - The final value, 9.94″/yr, shows from 21.6 s and is held, with the "Catalogue 10.39″/yr" row (y 474–500, the
+    caption starts at y 576), until 24.3 s; then the panel scrolls to the brightness chart.
+  - The script now fails the run if: the value is final after 21.8 s; the Catalogue row is covered or under the
+    caption; or any value the big number showed (all 45 recorded as they were written) is below 0 or past the
+    final value.
+  - `vestigium-demo-30s.mp4`: **30.000 s** (900 frames), **2,728,271 bytes**, 1280×720, H.264 High, yuv420p,
+    30 fps, no audio; `.srt` and contact sheet re-made.
+  - The frames at 22, 23 and 24 s (n = 660, 690, 720) were extracted and looked at: each shows 9.94″/yr and the
+    Catalogue 10.39″/yr row clear of the caption. Every click hit; the largest cursor step was 56 px per frame;
+    no problems were reported.
+- **Tests:** `node --test` 266 pass.
+
+### Task B30, 15 Nov 2026 (done by Session A at the user's request): "How it works", evidence downloads, footer
+- **New page `?page=method`** ("How it works"): `static/js/method.js` (pure: facts, steps, numbers, links), `static/js/method-ui.js` (renderer), `static/css/method.css` (own file, so Session B's Home work in style.css stays apart), section `#page-method` in `index.html`, `'method'` added to `PAGES` in `route.js`, the `method.*` strings plus `nav.method`, `footer.spaceApps` and `download.*` in `i18n.js`. Each section is a headline, one short line, and cards; longer text sits in closed Details. The header menu item is left to Session B (header off limits during B29).
+- **Where every number and fact comes from:**
+  - Wavelengths "0.75 to 5 µm": `WAVE_MIN`/`WAVE_MAX` in `static/js/stack.js`. The IRSA DR1 overview says "from 0.75 to 5.0 um across the entire sky" (https://irsa.ipac.caltech.edu/data/SPHEREx/docs/overview_dr1.html, read 15 Nov 2026).
+  - "6" detector arrays and the D1–D6 ranges (0.75–1.09, 1.1–1.62, 1.63–2.41, 2.42–3.82, 3.83–4.41, 4.42–5 µm): `DETECTOR_RANGES` in `static/js/stack.js` (same as `backend/processing.py`). The Caltech instrument page says "Six 2K x 2K HgCdTe detector arrays" with Bands 1–6 at exactly these ranges (https://spherex.caltech.edu/page/instrument).
+  - "Every 6 months": the JPL mission page says "Every six months, SPHEREx will survey the entire sky" (https://www.jpl.nasa.gov/missions/spherex/).
+  - "March 2025": the IRSA DR1 overview says "launched in March 2025"; the JPL page gives March 11, 2025.
+  - "NASA/IPAC IRSA": the IRSA SPHEREx mission page (https://irsa.ipac.caltech.edu/Missions/spherex.html) serves DR1.
+  - Pluto "5.9″", Miss: `scoreboard.json` row `pluto-position-2026b`, fields `model_error_arcsec` (5.8991) and `status`. "Why: our oval was too small" is shown only when `trials/pluto/postmortem.json` (exploratory, `frozen.d2` 6.7728 > 5.991) is present, and is labelled as found after the reveal. "Team confirmation pending" on the Check step comes from the row's `confirmation_pending`.
+  - Practice runs "2 of 2" and "1.52″" / "0.08″": `scoreboard.json` rows `barnard-position-2026b` and `epsindib-position-2026b` (`status`, `model_error_arcsec` 1.5188 and 0.0755), which match `counts.retrospective_holdout.hit` = 2.
+  - Asteroid batch "1 of 1", "7 not scorable", "(3)" and "(4)": `scoreboard.json` `asteroid_batch.counts` (hit 1, miss 0, insufficient_data 3, ambiguous 4, invalid_comparison 0), plus `team_statement_pending`.
+  - Planet X "4 to 7" magnitudes: `planetx/depth.json` through `readDepth` and `glanceOf` (`planetx.js`), the same numbers as the "Can and can't do" dialog (`limits.js`).
+  - The 15″ in "What this cannot tell you": Barnard's `investigation.json` `pipeline.settings.core_radius_arcsec`, through the dialog's own code (`help.js` `renderLimits(host, { only: 'cannot' })`).
+  - The Lock link: `trials/pluto-position-2026b/receipt.json` `commit` (b2df072…). The Model and Check links open the Pluto reveal at steps 2 and 6 through a new `?step=1–6` parameter, which is read once when the reveal opens and is not written back.
+- **Honest statuses:** all eight steps are "Done" because each step's result is visible on the site. Check reads "Done · team confirmation pending" from the scoreboard. "Ruling out the familiar": stars come from Gaia DR3 (`backend/investigation.py`, `scripts/build_investigation.py`), with SIMBAD for WISE 0855 and Epsilon Indi B. Asteroids come from JPL Horizons and the SBDB, through IRSA MOST (`scripts/asteroids.py`, including the Gaia DR3/AllWISE 15″ star check). **IMCCE SkyBoT is not called anywhere in our code**; its two cards were removed in B30b.
+- **Download the data (JSON):** in Investigate's Evidence tab, a link to the target's published `investigation.json` (path from `index.json`, served from the source's own base). On every prediction card's Details (story cards, scoreboard cards and asteroid batch cards), links to that trial's published files that loaded (`trial`, `prediction`, `receipt`, `training`, `verification`). These are existing files only; no data file is new or changed.
+- **Links:** "How it works →" at the top of Predictions, under About's headline, and in the "Can and can't do" dialog (the link closes the dialog).
+- **Footer:** "Built for the NASA Space Apps Challenge 2026. Not affiliated with or endorsed by NASA." is added to the site footer. **Limit:** the footer is hidden on Home and Investigate by an existing rule (`style.css`: `body[data-page="home"] .site-footer, body[data-page="investigate"] .site-footer { display: none; }`). Both pages are Session B's and off limits during B29, so the line was not on those two pages at first. **Resolved by Session B in `4941fa1` (B29f):** the line is on Home (`.famous-foot`) and at the end of the Investigate panel (`.inv-foot`), and "How it works" is in the header menu. Session A re-checked on top of `4941fa1` in headless Chrome at 1280 and 390. Exactly one copy of the line is visible on Home and one on Investigate, the menu has "How it works", there is no sideways scroll, and `node --test` passes 276 of 276.
+- **Checks (real runs):**
+  - `node --test tests/`: 271 of 271 pass after rebasing onto `e1f1ab0` (270 before). This includes the new `tests/method-page.test.mjs` (5 tests): numbers equal the files' fields; eight steps in order; the Lock commit; the pending status; `?step=` parsing; facts with https mission sources; only services we call are listed (B30b); the four limits equal the dialog's; every trial's files exist; the footer and the three links are in `index.html`.
+  - `python -m scripts.validate_release`: 120 contract files checked, 0 failures.
+  - Headless Chrome (CDP, exact viewports):
+    - At 360, 390 and 1280, `scrollWidth` equals the viewport width (no sideways scroll) and no element ends past the right edge.
+    - On the first screen no visible paragraph is longer than 3 lines (measured; two longer card lines were shortened).
+    - All nine headline values render from the files.
+    - `?target=barnard&panel=evidence` shows "Download the data (JSON): investigation.json"; fetching `data/barnard/investigation.json` returns 200 with `tenger.investigation/1`.
+    - On Predictions there are 16 download lines, including 8 batch cards, and all 55 linked files return 200. The top link is `?page=method`.
+    - `?page=predictions&trial=pluto-position-2026b&step=2` opens the reveal on step 2 ("Physics predicts Pluto's path…"), and `&step=6` opens the verdict ("5.9″ from our forecast, just outside the oval: a miss").
+  - Accessibility: sections use `aria-labelledby` and headings, and cards are list items with an h3. The band strip is a labelled list, Details are native `<details>`/`<summary>` (keyboard and screen-reader ready), and each download link has an `aria-label` naming the file and the target.
+- **Screenshots:** `docs/screens/b30-method-360.png`, `docs/screens/b30-method-390.png`, `docs/screens/b30-method-1280.png` (full page), `docs/screens/b30-reveal-step2-390.png`.
+- **Not verified:** a real phone, and screen-reader speech (only the markup was checked).
+
+### Task B29 (with additions a–e), 15 Nov 2026: Home is the Solar System, moving on its own
+
+- **One view.** The 3D Solar System fills Home under the header. The separate text-first screen and the second 3D
+  section are gone (no `home-spacer`, no old target rail).
+  - A compact title block sits top-left: "Watch the sky move.", "Real NASA SPHEREx pictures of stars and worlds that
+    move.", the "Watch Barnard's Star move" button and a "New: Could SPHEREx see Planet X?" chip. The chip links to the
+    Lab; its measured line from `depth.json` is the chip's tooltip and screen-reader text.
+  - Search is a small icon in the header (`#head-search`); the same form opens under it.
+- **Famous targets** (`static/js/home.js` `renderFamous`, `describe.js` `famousLine`). 8 cards: the five challenge
+  targets, Pluto, Makemake and 3I/ATLAS. Each card has a still thumbnail, the name and one line from the data files:
+  - Stars: kind and light-years ("fast-moving star · 6 ly").
+  - Pluto and Makemake: "dwarf planet · our blind forecast", from `open_forecast_ids` in `index.json` (now read
+    by `targets.js`).
+  - 3I/ATLAS: "interstellar comet · pictures only" (See only).
+  - Each card's accessible name also carries the data status and the prediction status.
+- **Choosing a card** (or a target's 3D label):
+  - The camera flies there, the card is pressed and the 3D label is highlighted.
+  - A popup shows the same line, the status ("Images ready · Hit: inside the preregistered region") and "See the
+    pictures", which opens Investigate on See with Blink playing.
+  - Esc, the × button or a click on empty space closes it; the camera returns to the whole view.
+  - Back from Investigate also closes it and returns the camera home.
+- **Motion with no input** (`space-ui.js` `watchAuto`, pure `shouldTurn`):
+  - The camera turns once in about 2 minutes (OrbitControls speed 0.5, timed in seconds). Time runs at 1 day/s.
+  - A drag, wheel or touch on the scene takes over; the turn resumes 5 s after the last one.
+  - It stops while a target is chosen, on another page, with Investigate open (the scene also pauses, B27a), with
+    the scene off screen or in a hidden tab.
+  - b. The **Auto rotate** switch (`role="switch"`) replaces the visible Pause/Play. Off stops both the turn and the
+    time; on resumes both. It is on by default and off under reduced motion (a still frame).
+- **Decluttered controls:**
+  - One compact time bar bottom-centre: LIVE, Auto rotate, date, speed.
+  - Reset view, Top view, Fly to and 2D/3D as an icon toolbar bottom-left, with tooltips and accessible names.
+  - The colour key and "About this map" are behind a small "Key" button, which also holds the "Planets on …
+    (JPL approximate elements)" line and the camera's target.
+  - "Schematic · not to scale" stays on screen as a chip.
+  - The dataset credit line moved into "About this map".
+- **Additions:**
+  - a. A hint over the scene: "8 targets · tap a card or label · drag to rotate" (phones: "8 targets · tap a
+    card"); the count comes from the data. It fades on the first pointer, touch, wheel or key on Home and returns on
+    reload.
+  - c. Filter chips above the rail: All, Stars, Brown dwarfs, Variable stars, Solar System (kinds from the data
+    files). A chip dims the other cards and their 3D labels to 35% and outlines the matching labels; nothing is
+    hidden. The choice is announced ("Brown dwarfs: 2 of 8 targets highlighted.") in a polite live region.
+  - d. Layer switches in the Key (Orbits, Labels, Kuiper Belt, Planet Nine range), all on, applied at once without
+    reloading (`space3d.js` `setLayer`). A hidden Planet Nine range no longer takes clicks.
+  - e. Key line: "Sizes and distances are not to scale; label colour shows the kind of object."
+- **Phones:**
+  - The Solar System fills the first screen, the title on top and a swipe row (filter chips and cards) at the bottom.
+    The Key and the chip sit just above the row.
+  - The scene takes no touch, so dragging scrolls the page (no trap). "Explore in 3D" opens it full screen as before;
+    the popup sits over the row.
+- **Guided tour.** It no longer starts by itself on a first visit; the hint does that job and the tour stays under
+  More. This was needed for Lighthouse: the tour's late text was the largest paint.
+- **Checks** (headless Chrome on the GPU; `node --test`):
+  - 1280×800 and 390×844, no input:
+    - The scene is on screen 0.65 s and 0.58 s after navigation.
+    - Over 1 s the picture changed and the date ran about 1 day.
+    - Auto rotate is on, rate "1 day/s".
+  - All 8 cards are visible without scrolling at 1280. At 390 a touch swipe reaches the last card
+    (`scrollLeft` 1370 of 1370).
+  - Barnard's Star card:
+    - It flies, highlights the label "Barnard's Star · 1.83 pc (6 ly)" and opens the popup with focus on "See the
+      pictures".
+    - Esc closes it and focus returns to the card; Enter reopens it.
+    - "See the pictures" opens Investigate (Barnard's Star, Blink pressed, playing).
+    - Back returns Home with the popup closed and the scene moving.
+  - Filter "Brown dwarfs" and the Orbits and Kuiper Belt layers off: both states are unchanged after flying to
+    WISE 0855 and back. The Labels switch hides and shows the labels.
+  - Auto rotate off: the date and the picture hold. On: the date runs again.
+  - 360×740: nothing overflows sideways, also with the Key, a popup or the search box open.
+  - Reduced motion:
+    - The 2D map, pixel-identical 1.5 s apart.
+    - With 3D switched on, still (Auto rotate off).
+    - The popup works.
+  - No WebGL (`--disable-webgl`): the 2D map with its 7 markers, the note, all 8 cards; the popup opens WISE 0855 in
+    Investigate. The only console messages are three.js's own "could not create a WebGL context", as before B29.
+  - Header search: the icon opens the box with focus in it; "Epsilon Indi B" opens that target.
+  - No console errors in any other run.
+  - Lighthouse mobile on Home (uvicorn, two runs): performance 81 and 82, accessibility 100, best practices 100,
+    SEO 100, CLS 0 (before the fixes: 73 and 74, LCP the tour text, CLS 0.094).
+  - `node --test`: 270 pass. New: `tests/home-b29.test.mjs` (`shouldTurn`, turn and time rates, card lines from
+    `index.json`, Home wiring). `tests/focus.test.mjs` was updated for the icon Fly to button.
+- **Screenshots** (`docs/screens/`):
+  - Before and after: `b29-home-1280-before.png` and `b29-home-1280-after.png`; `b29-home-390-before.png` and
+    `b29-home-390-after.png`.
+  - Chip selected: `b29-chip-1280.png`, `b29-chip-390.png`.
+  - Key open: `b29-key-1280.png`, `b29-key-390.png`.
+  - Popup: `b29-popup-1280.png`, `b29-popup-390.png`.
+  - Other states: `b29-home-360.png`, `b29-explore-390.png`, `b29-home-1280-reduced.png`,
+    `b29-home-1280-nowebgl.png`, `b29-search-1280.png`.
+- **Limits:**
+  - Checked in headless Chrome with touch emulation, not on a real phone.
+  - The 2D map has no fly-to (the popup still opens).
+  - The demo video (B28) still shows the previous Home.
+
+
+### Task B30b, 15 Nov 2026 (done by Session A at the user's request): SkyBoT removed, logo checked, sources audited
+- **SkyBoT removed:** the "IMCCE SkyBoT" cards in "Ruling out the familiar" and "Data sources" are gone, with their four strings and the now unused `method.status.notUsed` (`static/js/method.js`, `static/js/i18n.js`, `static/css/method.css`). "No match means ‘not in these catalogues’, not ‘new’." stays. The test now requires the page to list only `stars`/`asteroids` and `irsa`/`jpl`/`gaia`/`cds`, with no SkyBoT or IMCCE text in the page code or any English string.
+- **Header logo:** new screenshots, each in a fresh temporary Chrome profile (no cache, no service worker; `navigator.serviceWorker.getRegistrations()` returns 0; the site registers none). At 1280 and 390 the header shows the new Vestigium logo: `img/vestigium-logo-white.png`, loaded at 712×176, shown at 121×30 (1280) and 105×26 (390). **Why the old icon showed:** the first B30 screenshots were taken before B30 was rebased, from a working tree that did not yet have the logo commit `fe69382`. It was not a cache problem, and nothing needed fixing. `docs/screens/b30-method-1280.png` and `-390.png` are replaced.
+- **Submission sources against the code and data** (report only; nothing changed). Every listed source is really used:
+  - SPHEREx DR1 and QR3: release fields and file names in `static/data/*/investigation.json`, `backend/`, `scripts/` (e.g. `pluto/verification/spherex_qr3_…webp`).
+  - AllWISE: `backend/context.py`, `static/data/barnard/wise.bin.gz`, the Real sky tiles, and the Gaia/AllWISE star check in `scripts/asteroids.py`.
+  - 2MASS catalogue: `backend/context.py` (2MASS PSC Ks from IRSA `fp_psc`), shown as context in the barnard, epsindib and wise0855 `investigation.json`.
+  - WISE Explanatory Supplement: the W1 limit in `scripts/planetx_build.py` → `planetx/depth.json`.
+  - IRSA MOST: `scripts/asteroids.py`.
+  - JPL Horizons: `scripts/` (trials, postmortem, build_body, build_scene3d) and 18 data files.
+  - JPL SBDB: `scripts/asteroids.py`, `scripts/build_scene3d.py`.
+  - JPL approximate planet positions (Standish): `static/js/orbits.js`, `static/js/time.js`.
+  - Gaia DR3: `backend/gaia.py`, `backend/investigation.py`, `scripts/`, 18 data files.
+  - SIMBAD and VizieR: `backend/catalogs.py`, `scripts/build_investigation.py`, `scripts/asteroids.py`.
+  - Aladin Lite 3.8.2: `static/js/sky.js`, loaded on demand from jsDelivr. Note that the Real sky panel is offered only where the local server runs.
+  - SPHEREx Blink: the base code (LICENSE, git history).
+  - Planet Nine papers:
+    - Linder & Mordasini 2016, Fortney et al. 2016 and Meisner et al. 2018: `scripts/planetx_build.py` → `planetx/depth.json`.
+    - Batygin & Brown 2016, Brown & Batygin 2016, Batygin et al. 2019, Brown & Batygin 2021 and Brown, Holman & Batygin 2024: `scripts/build_scene3d.py` → `scene3d.json`.
+  - Blanton & Roweis 2007: the I-band Vega→AB offset 0.45 in `scripts/planetx_build.py` → `planetx/depth.json`.
+  - Astropy: `backend/` and `scripts/`.
+  - three.js: `static/vendor/three`.
+  - Fonts: the three woff2 files and OFL licences in `static/fonts/`.
+  - GitHub Pages: the repository is public, and `.github/workflows/pages.yml` on `main` uploads `static/`. The last run succeeded at 10:53 UTC. The pages API reports the site at https://nama2323.github.io/tenger/ with `status` null.
+  - **Not used: none of the listed sources.** The only service the page had listed without using it was SkyBoT, now removed.
+  - **Count:** the eight Planet Nine papers are the three in `depth.json` (Linder & Mordasini 2016, Fortney et al. 2016, Meisner et al. 2018, a WISE/NEOWISE Planet Nine search) and the five in `scene3d.json`; all eight are used.
+- **Checks:** `node --test tests/` 275 of 275 pass after rebasing onto B29 (`f32e27e`). On top of B29, `?page=method` at 1280 and 390 still shows the new logo, 2 catalogue cards, 4 source cards, no SkyBoT text and no sideways scroll. The header menu item for "How it works" is still Session B's to add.
+
+### Task B29f, 15 Nov 2026: "How it works" in the menu; the Space Apps line on Home and Investigate
+
+- **Menu.** "How it works" (Session A's B30 page, `?page=method`) is in the header menu between "Predictions" and
+  "Planet X", in the same order in the phone menu. Checked at 360, 390, 768, 1024, 1100, 1101 and 1280: the order is
+  Investigate, Predictions, How it works, Planet X. Clicking it opens the page.
+- **Header width.** With the B29 search icon and the extra item, the full menu no longer fits below about 1090 px, so
+  the menu collapses into "Menu" at 1100 px and below (it was 980). At 1101 px the "?" button ends at 1085 px, inside
+  the 16 px margin.
+- **Space Apps line** (Session A's request; `footer.spaceApps`). Home and Investigate hide the site footer, so the
+  line also sits:
+  - at the bottom of the Famous targets rail (phones: under the swipe row);
+  - at the end of the Investigate panel.
+
+  The phone row's reserved height default was raised to 176 px to match, so Home still has no layout shift.
+- **Checks:**
+  - `node --test` 276 pass (new: menu order and the two lines).
+  - All B29 checks at 1280 and 390 pass again. 360: no sideways overflow with the Key, a popup or the search open.
+  - Lighthouse mobile on Home: 83 and 81, CLS 0.
+  - No console errors.
+
+
+### Task B31, 15 Nov 2026 (done by Session A at the user's request): the Colour slider under the picture
+- **What:** under the picture, right after Contrast, a "Colour" slider with seven steps: All · D1 · D2 · D3 · D4 · D5 · D6. Above it is one line: "SPHEREx sees every patch of sky in 102 colours, recorded by 6 detector arrays. Slide to see each one." (102 is `CHANNELS` and 6 is the size of `DETECTOR_RANGES` in `static/js/stack.js`.) Beside the slider, the current step and its range are shown from the same table (`D3 · 1.63–2.41 µm`, `All · 0.75–5.00 µm`), and this is also the slider's `aria-valuetext`.
+- **How:** the slider calls the existing `setBand()`, the same path as the six array tiles and `?band=`. Each step shows that array's real per-array image for both A and B. The URL `band` value updates (`all`, `d1` … `d6`) and is read back on reload, and `setBand()` keeps the slider in step with the tiles and the URL. Display only: a single array is painted with `sharedLimits()`, one stretch per array for every date. No measurement, data file or caption number changes.
+- **Off when a picture has one colour:** when A or B is AllWISE, for preview-only targets (e.g. Pluto) and with no frames, the slider is `disabled`. Hovering the control shows "Only one colour is available for this picture. Pick two SPHEREx dates as A and B to see each colour." (the second sentence was added at the user's request; the title is on the control's box and the input), and screen readers get the same sentence through `aria-describedby`. **Note:** Barnard's Star, WISE 0855 and the other fast movers open with AllWISE 2010 as A, so the slider starts disabled there. It turns on as soon as A and B are both SPHEREx dates, for example `?target=barnard&a=2025-08-29&b=2026-08-22`. That is exactly rule 3. **User's decision (15 Nov 2026): keep it as is.** Barnard's Star keeps its AllWISE 2010 vs SPHEREx default pair.
+- **Files:**
+  - `static/index.html`: the control after `.contrast-control`, and the link to `css/colour-step.css`.
+  - `static/js/main.js`: `buildColourStep`, `syncColourStep`, `singleColour`, `colourStepText`; `render()` calls `syncColourStep()`.
+  - `static/js/i18n.js`: `colourStep.*`.
+  - `static/css/colour-step.css`: new.
+  - `tests/colour-step.test.mjs`: new, 3 tests.
+- **Checks (real runs):**
+  - `node --test tests/`: 279 of 279 pass.
+  - CDP script with real key presses (`Input.dispatchKeyEvent`), in a fresh Chrome profile. Barnard's Star (`a=2025-08-29&b=2026-08-22`) and RW Aurigae (default pair), each at 1280×900 and 390×844:
+    - All seven steps give seven different pictures of the same date (B), from a fingerprint of the plate's pixels. None is empty, and each is painted at most 22 ms after the input.
+    - The URL `band` goes all → d1 … d6.
+    - With D2 chosen, Blink keeps playing: Pause stays pressed, and the plate shows both A and B within 3 s.
+    - With the slider focused: ArrowRight, ArrowRight, ArrowLeft, Home give D3, D4, D3, All, with the URL following.
+    - After choosing D5 and reloading, the URL had `band=d5`, and the page comes back with the slider on D5, "D5 · 3.83–4.41 µm" and a picture.
+  - At 360×780 on Barnard's Star, Pluto, RW Aurigae and WISE 0855, `scrollWidth` is 360 (no sideways scroll), and the control ends at x = 335. It is disabled, with the sentence, on Barnard's Star (A = AllWISE), WISE 0855 (A = AllWISE) and Pluto (previews), and enabled on RW Aurigae.
+- **Screenshots:** `docs/screens/b31-barnard-1280.png`, `b31-barnard-390.png`, `b31-rwaur-1280.png`, `b31-rwaur-390.png` (all on D3), `b31-rwaur-360.png`, and `b31-{barnard,pluto,wise0855}-360-disabled-check.png`.
+- **Not verified:** a real phone or touch dragging (only keys and input events were driven), and screen-reader speech.
+
+### Task B33, 15 Nov 2026 (done by Session A at the user's request): header menu labels never wrap
+- **Problem:** at 1280 px the full menu was squeezed and labels wrapped onto two lines ("How it / works", "Planet / X", "Beat the / physics"). With every label on one line at the old 16 px button sides, the full header needs 1288 px, so it cannot fit at 1280. Collapsing there would have hidden "Can and can't do" inside "Menu".
+- **Change (header CSS only, `static/css/style.css`):**
+  - `.nav button, .nav-more > summary { white-space: nowrap; }` and `.nav > * { flex: none; }`, so no label can wrap or be squeezed.
+  - In the one-line state, button sides go from 16 px to 11 px (summary 10 px).
+  - The full menu shows from **1240 px**, and at 1239 px and below it collapses into "Menu" (it was 1101/1100).
+  - The `.reveal-body` rules that shared the old 1100 px block stay at 1100 px, unchanged.
+- **How 1240 was chosen (measured):** at 1240 px the free space between the logo and the menu is 33 px, so the one-line header needs 1207 px. The extra 33 px covers a classic Windows scrollbar (about 17 px; media widths include it, but the fixed top bar does not get that space) plus rounding.
+- **Checks (real runs):**
+  - CDP sweep, resizing 1 px at a time from **1101 to 1920 px (820 widths) on About, Home and Barnard's Star in Investigate: 0 failures on each.** At every width:
+    - no label is taller than one line and every item sits on one row;
+    - no item overlaps the next, and neither the top bar nor the page scrolls sideways;
+    - the logo, the search icon and "?" are fully on screen;
+    - from 1240 up, "Can and can't do" is on screen; from 1239 down, "Menu" is.
+  - Free space at 1280 / 1366 / 1440 / 1920: 73 / 159 / 233 / 713 px.
+  - The opened "Menu" at 360, 768 and 1239 px: every item fits inside the drop-down, nothing is clipped, and there is no sideways scroll.
+  - `node --test tests/`: 279 of 279 pass.
+- **Screenshots (header strip):** `docs/screens/b33-header-{1239,1240,1280,1366,1440,1920}.png`, and the opened menu at `docs/screens/b33-menu-open-{360,768,1239}.png`.
+- **Not verified:** Windows with classic scrollbars, which is covered by the 33 px margin but not run, and a real 1280 laptop screen.
+
+### Task B29g, 15 Nov 2026: Home's target lines say no more than the record
+
+- **Source.** Every word now comes from `scoreboard.json`, which `loadData` already reads before Home is drawn:
+  - its see-only list;
+  - the target's scored row: status, `category` (retrospective_holdout = "Practice run", prospective_unexposed =
+    "Real test", the Predictions page's own chips), `confirmation_pending` and `model_error_arcsec`.
+
+  Pure functions: `describe.js` `famousResult` and `famousLine`. `index.json`'s `open_forecast_ids` is no longer used
+  for the wording. Makemake has an open forecast, but its `prediction.json` says `prediction_status:
+  insufficient_data` with no model, so B29's "our blind forecast" overstated it.
+- **Cards.** Stars keep kind and distance (they claim nothing about forecasts):
+  - Pluto: "dwarf planet · blind forecast, confirmation pending".
+  - Makemake: "dwarf planet · too little data to forecast".
+  - 3I/ATLAS: "interstellar comet · pictures only".
+
+  Card lines now wrap instead of ending in an ellipsis, which had cut "confirmation pending" to "co…". The rail was
+  tightened so all 8 cards still fit at 1280×720, and phone cards are 264 px wide with one height (66 px).
+- **Popup result line**, in plain words with the trial type (replacing "Images ready · Hit: inside the
+  preregistered region"):
+  - Barnard's Star: "Practice run: hit, 1.52″ off" (1.5188).
+  - Epsilon Indi B: "Practice run: hit, 0.08″ off" (0.0755).
+  - Pluto: "Real test: missed by 5.9″" (5.8991).
+  - WISE 0855, RW Aurigae, R Draconis, Makemake: "Too little data to forecast".
+  - 3I/ATLAS: "Pictures only".
+
+  Each card's accessible name uses the same two lines. Home's visible text no longer contains "preregistered"
+  (checked in the browser).
+- **Tests:** `tests/home-b29g.test.mjs` checks every card and popup line against `scoreboard.json` for all 8 targets:
+  - the exact lines above;
+  - "pictures only" exactly for the see-only list, and "too little data" exactly for `insufficient_data`;
+  - "blind" only for a scored real test, "confirmation pending" only where the row says so;
+  - the error matches `model_error_arcsec`;
+  - Makemake's open forecast is not called a forecast;
+  - without the scoreboard no card claims anything.
+
+  `node --test` 279 pass.
+- **Checks:** all B29 interaction checks pass again at 1280 and 390. Lighthouse mobile on Home 84, CLS 0 (the
+  phone row's reserved height default is now 190 px).
+- **Screenshots:** `docs/screens/b29g-rail-1280.png`, `b29g-popup-barnard-1280.png`,
+  `b29g-popup-makemake-1280.png`.
+- **Independent review** (two read-only reviewers that had not seen this work):
+  - Re-derived from the files, every Home line matches the record and nothing overstates a result.
+  - Fixed from their low findings:
+    - Without `scoreboard.json` the popup now says "Forecast status unavailable" (it said "No forecast yet", which
+      the trial files contradict), and 3I/ATLAS keeps "pictures only" from `index.json`.
+    - A trial type other than practice run or real test is not named on a card.
+    - An exploratory row is never the headline.
+    - Screen readers hear the status once, not twice.
+  - Left for the user:
+    - Pluto's card wording (requested) does not show the miss; the popup does.
+    - "Too little data" for RW Aurigae, whose record says no period model was justified (15 measurements exist).
+    - Outside B29g, the "Can and can't do" dialog (B19's dictated texts) says every forecast was locked before the
+      newest pictures were opened, which is untrue for the two practice runs. It also says "every teammate confirms"
+      (still pending), and that RW Aurigae's brightness cannot be measured.
+
+  `node --test` 280 pass.
+
+### Task B32, 15 Nov 2026: a new deploy never runs with old cached files
+
+- **Cause.** After the 21:19 deploy, a browser showed raw string keys ("nav.method", "hero.lineShort") and "Cannot
+  read properties of null (reading 'setAttribute')". GitHub Pages lets browsers cache every file for 10 minutes and
+  the module addresses never changed, so the new `index.html` ran with old cached modules.
+- **Reproduced.** A local server with Pages-like caching (`Cache-Control: max-age=600` and an ETag on every file).
+  One Chrome profile loaded the build before B29 (`e1f1ab0`), then the server switched to the 21:19 build
+  (`0f5153b`) and the page was reloaded normally. Result: 10 raw keys on Home (`nav.method`, `hero.lineShort`,
+  `famous.title`, `footer.spaceApps`, …) and no target cards.
+- **Build version on everything.**
+  - `.github/scripts/stamp-build.mjs` writes one version into `static/index.html`:
+    - `<meta name="build">`;
+    - an import map that sends every module under `js/` and `vendor/` (57 today, static and dynamic imports) to
+      `<file>?v=<version>`;
+    - `?v=<version>` on every stylesheet and on `js/main.js`.
+  - The Publish site workflow (`.github/workflows/pages.yml`) runs it with the commit (`${GITHUB_SHA::12}`) before
+    uploading, so every deploy gets a new version automatically.
+  - The committed `index.html` carries `dev`.
+  - Data files: `js/dom.js` `installVersionedFetch()` (called first in `main.js`) adds `?v=<build>` to every
+    same-site `data/` request. The API and other sites are untouched.
+  - Images keep their addresses, so they are not re-downloaded on every deploy.
+- **No raw keys, no crash on a missing part.**
+  - `t()` returns nothing for a key with no text (it returned the key); `has()` still tells them apart.
+  - The page shell (`main.js`) looks elements up with `part()`, which gives a detached stand-in and one console
+    warning instead of null. Other modules, which test for null, keep `$()`, and so does the one null check in
+    `main.js` (`#ambient`).
+- **Checks:**
+  - Same profile, normal reload, Pages-like caching:
+    - build before B29 → this build (stamped `1205772abcde`) → a next deploy (`nextdeploy01`);
+    - and the 21:19 build → this build.
+
+    Each step: no raw keys, all 8 cards, "How it works" in the menu, no errors.
+  - Investigate (all five tabs), Predictions, How it works, Learn and Beat the physics: no errors.
+  - All B29 interaction checks at 1280 and 390 pass, with no errors or warnings.
+  - `node --test` 288 pass. New: `tests/build-stamp.test.mjs`:
+    - the committed map lists every module (re-stamping changes nothing);
+    - a deploy stamp versions every module, stylesheet, the main script and the meta;
+    - every static and dynamic import goes through the map;
+    - data requests carry the build and others do not;
+    - a missing key shows nothing.
+- **Header.** The menu wrapping at 1280 (Session A's B31 note) is fixed by Session A's B33 (one line from 1240 px);
+  my own header change was dropped in favour of it.
+- **Limit.** The pre-B32 builds that browsers may already hold cannot be changed retroactively. After this deploy the
+  new `index.html` asks for new module addresses, so it loads matching files even while old ones are cached.
+
+### Task B32a, 15 Nov 2026: "Can and can't do" says no more than the files (dialog, About, How it works)
+
+- **Source.** The three lines the B29g review flagged now come from the data, through `limits.js` `honestyFacts`
+  (pure) and `help.js` `honestyTexts`. One renderer draws the dialog, the About card and How it works, so all three
+  changed together.
+  - **Forecasts.** "Our real tests (Pluto and the asteroids) are locked on GitHub before the newest pictures are
+    opened. Practice runs (Barnard's Star, Epsilon Indi B) use data we had already seen, and are labelled that way."
+    - Real tests: scoreboard rows with `category: prospective_unexposed` (Pluto), plus the asteroid batch, whose
+      category and all 8 trials are `prospective_unexposed`.
+    - Practice runs: scored `retrospective_holdout` rows (the two hits).
+  - **Time stamp.** "→ We log who opened which data, and a test stays marked ‘confirmation pending’ until all four
+    teammates confirm." It replaces "every teammate confirms": Pluto's trial says "other teammates not answered yet"
+    and its row has `confirmation_pending: true`. The number four is the user's; the files do not record it.
+  - **Saturation.** "Very bright stars saturate SPHEREx, so their brightness cannot be measured (Barnard's Star and
+    R Draconis)." A target is listed when its investigation has no usable brightness and most pictures were refused
+    for flagged pixels:
+    - Barnard's Star: 0 of 356 usable, 356 flagged.
+    - R Draconis: 0 of 299 usable, 299 flagged.
+    - Not listed: Epsilon Indi B (338 of 458 usable); WISE 0855 (no usable pictures, but 198 of 256 refused for
+      neighbour light, which the blend line covers).
+
+    The → line: "For Barnard's Star we use the position instead; R Draconis is marked ‘too little data’. RW Aurigae
+    has 15 brightness measurements, but no regular pattern to forecast from." The 15 is `n_training_points`, and
+    the reason is `predict.no-period-model`.
+  - The dialog reads Barnard's investigation (already loaded), `index.json`, `scoreboard.json`, and the brightness
+    trials' predictions and investigations (RW Aurigae, R Draconis), only when the list opens. Until then each line
+    shows without names.
+- **Same claim elsewhere:**
+  - About, "Saturation": now names Barnard's Star and R Draconis, and gives RW Aurigae its real reason.
+  - About, the VSX source note: "R Dra has saturated or flagged pixels on the star in every exposure" (299 of 299);
+    it said "is saturated".
+  - Lessons only mention Barnard's flagged pixels, which is right, so they were left alone.
+- **Download links.** The "Download the data (JSON)" links (Session A's B30 note) now carry `?v=<build>` too
+  (`dom.js` `downloadLine`). The file still saves under its own name, and the response is 200.
+- **Tests:** `tests/limits-honesty.test.mjs`:
+  - the facts from the files;
+  - the dialog's partial load gives the same saturated set as all 8 investigations;
+  - the exact three lines;
+  - no names before the files load;
+  - no English string says RW Aurigae saturates, that each forecast was locked before the pictures were opened, or
+    that every teammate confirms;
+  - About's saturated list.
+
+  `node --test` 291 pass.
+- **Browser** (1280 and 390): the dialog shows the three lines with no errors, and About and How it works show the
+  same.
+- **Screenshots:** `docs/screens/b32a-limits-can-1280.png`, `b32a-limits-cannot-1280.png`,
+  `b32a-limits-can-390.png`, `b32a-limits-cannot-390.png`.
+- **B33.** Session A's 25f823a is accepted, so B33 was not re-done here.
+- **Precision fix** (Session A's science check). The line now reads "RW Aurigae’s forecast had 15 brightness
+  measurements to learn from, but no regular pattern to forecast from." The 15 is the frozen trial's training set:
+  `training.json` has 15 points and `n_training_points` is 15. The investigation has 17 usable measurements; the
+  2026 W36–38 season was held out for the check. "Has 15" understated the total.
+  - Session A also confirmed the rest against the files: the saturation counts, the trial categories, and "until all
+    four teammates confirm" (`docs/EXPOSURE.md`).
+  - The test now pins the 15 to `training.json`.
+  - The two "limits" screenshots were re-taken.
+
+  `node --test` 291 pass.
+
+### Task B35, 15 Nov 2026: "More to explore" on Home (pictures only), no archive objects in public search
+
+- **Rows.** Under the 8 Famous target cards (unchanged), "More to explore" lists the search list's prepared objects,
+  grouped as in search: Fast stars (6), Galaxies (4), Nebulae (4), Star clusters (3). Each card has:
+  - its thumbnail;
+  - "Pictures only: no forecast";
+  - its one-line description (the search list's `hook_*` text).
+
+  Wide screens: the rows sit in the rail under the targets and the whole rail scrolls; all 8 targets stay visible
+  at 1280×800. Phones: a swipe row per group below the first screen, which is now 40 px short so the heading shows.
+  Code: `home.js` `exploreGroups`, `renderExplore`; `main.js` `placeExplore`.
+- **Click.** The same popup as a target: name, "Pictures only: no forecast" as its first line, then the
+  description, and "See the pictures" (Investigate, Blink). There is no 3D flight, since these objects are not in
+  the scene. That none of the 17 has a trial is checked against `scoreboard.json` and `index.json`.
+- **Public site.** All 17 were opened one by one on a github.io build (static files served as
+  `https://nama2323.github.io/tenger/` in headless Chrome). Each opened Investigate with its pictures drawn (A/B
+  dates, lit pixels), with no errors and no request to a server. None failed, so none is left out (`exploreGroups`
+  takes an exclusion list if one ever does).
+- **Search.** "More famous objects" (`names.js` CATALOG, loaded from the archive through our server) are not
+  listed on the public site, and a typed one gives the "needs the Vestigium server" note. With the local server they
+  stay, as before. On the github.io build the list shows Fast stars, Galaxies, Nebulae, Star clusters and NASA
+  challenge; locally it also shows More famous objects.
+- **Checks:**
+  - 1280 and 390: the new rows appear below the 8 cards, and Andromeda's card → popup → Investigate works.
+  - 360: no sideways overflow.
+  - No console errors.
+  - Lighthouse mobile on Home: 80, 80 and 81 (meets the rule, with a thin margin).
+  - `node --test` 295 pass (new `tests/explore-b35.test.mjs`).
+- **Screenshots:** `docs/screens/b35-home-1280.png`, `b35-home-390.png`, `b35-explore-390.png`,
+  `b35-popup-1280.png`.
+
+### Task B36, 15 Nov 2026: the all-sky Sky map (Aladin Lite with IRSA's SPHEREx survey)
+
+- **Opening.** A "Sky map" button (icon in Home's toolbar; on phones a button beside "Explore in 3D") opens a
+  full-width map over Home; Close or Esc returns, and the 3D scene pauses meanwhile.
+  - `static/js/skymap.js` and Aladin Lite (CDS, 3.8.2, from jsDelivr) load only when the map is opened, so Home's
+    speed is unchanged: Lighthouse mobile 81, CLS 0.002.
+- **Survey.** IRSA's official SPHEREx DR1 all-sky HiPS, `hips/SPHEREx/spherex_allsky_cube` ("SPHEREx DR1 all-sky
+  data cube", 102 wavelengths, PNG tiles, cross-origin allowed), live, labelled "SPHEREx survey tiles, live from
+  NASA/IPAC IRSA".
+  - Aladin asks for the cube's middle slice, which IRSA does not serve (404), so the layer is set to its first
+    slice before it is drawn; tiles then load with 200.
+  - If IRSA's survey does not answer within 3 s (checked while the library loads), the map uses 2MASS, labelled
+    "2MASS, not SPHEREx". That happened once in testing, with a slow IRSA response, and the label was right.
+  - Aladin's start-up logger is off (`log: false`).
+- **Markers.**
+  - The 8 Famous targets in their colours, and the 17 "More to explore" objects in white.
+  - Fixed targets sit at their `index.json` footprint centre.
+  - Pluto, Makemake and 3I/ATLAS have no fixed place, so each is marked at the centre of our latest SPHEREx picture
+    of it (its JPL Horizons position in the investigation file), with that date in the label, e.g. "Pluto
+    (2026-05-12)".
+  - Clicking a marker opens Investigate (See, Blink).
+- **Empty sky.** Clicking shows "RA …°, Dec …°. Pictures for any position need our server; on this site, pick a
+  marked object." There is no request to our server.
+- **Constellation lines.** A switch, off by default. The d3-celestial line data (Olaf Frohn, BSD-3-Clause) is
+  fetched from jsDelivr the first time it is turned on, with the label "Constellation lines are a guide, not SPHEREx
+  data".
+- **About.** It credits Aladin Lite (CDS) for the Sky map and the Real sky panel, and adds d3-celestial as a
+  source. The SPHEREx source now says the all-sky cube is the Sky map's backdrop, for display only (it said Vestigium
+  does not use it).
+- **Checks** (github.io build: static files served as `https://nama2323.github.io/tenger/` in headless Chrome, with
+  live IRSA and jsDelivr):
+  - 1280 and 390: the map opens in 1.5 s and 1.2 s with the SPHEREx survey.
+  - Barnard's Star: zoomed to its footprint centre (269.44648, +4.768669), a click on that exact pixel hits its
+    marker and opens Investigate.
+  - Pluto: zoomed to its latest observation centre (308.553874, −22.941289), the same.
+  - An empty-sky click shows the note; constellation lines load; Close returns to Home.
+  - No requests to our server, no sideways scroll, no console errors.
+  - `node --test` 298 pass (new `tests/skymap-b36.test.mjs`; the import map now lists 58 modules).
+- **Limits:**
+  - Zoomed in to 3°, the SPHEREx tiles had not arrived 1.5 s later in the test. The whole-sky view draws fully.
+  - At 390 the whole-sky labels crowd each other; zoom (+/−) separates them.
+  - The survey shows one SPHEREx wavelength slice (Aladin's mapping of the first frame); no wavelength is labelled.
+- **Screenshots:** `docs/screens/b36-skymap-1280.png`, `b36-skymap-390.png`, `b36-lines-1280.png`,
+  `b36-empty-1280.png`, `b36-empty-390.png`, `b36-barnard-1280.png`, `b36-pluto-1280.png`, `b36-home-390.png`.
+
+### Task B32b, 15 Nov 2026: the build-stamp script runs from paths with spaces
+
+- `.github/scripts/stamp-build.mjs` did nothing, and printed nothing, when the checkout path had a space (Session A's
+  "Hackathon Astrolemma" folder). Its "run as a script" check compared the percent-encoded `import.meta.url` with
+  the raw `process.argv[1]`. It now compares `pathToFileURL(process.argv[1]).href` (Session A's suggestion). CI was
+  not affected.
+- New test in `tests/build-stamp.test.mjs`: runs the script on a tiny site in a folder named "site with space" and
+  checks the stamp. `node --test` 299 pass.
+
+
+
+### Task B34, 15 Nov 2026 (done by Session A at the user's request): "Path through time (3D)" in What changed
+- **What:** in Investigate → What changed, a closed panel "Path through time (3D)".
+  - The floor is the sky around the target: east left, north away from the viewer (up on screen), with a grid and an arcsecond scale bar (1, 2 or 5 × 10ⁿ″).
+  - Height is time, on a vertical axis with each visit's date.
+  - Each dot is one position measured by us from SPHEREx, joined in date order and labelled "Measured by us from SPHEREx".
+  - Controls: "Shadow on the floor" (a switch) flattens the path onto the sky. Drag to turn, scroll or pinch to zoom (OrbitControls on the label layer), and "Reset view".
+  - Caption: "The floor is the sky (east left, north up); height is time. Drag to turn."
+  - three.js (the bundled `vendor/three/three-tenger.min.js`) is imported only when the panel opens. Without WebGL, or if the download fails, the same path is drawn from above as a 2D SVG with dates. The turning controls and caption are then hidden, and a note says why. A failed download is not cached, so the next opening retries.
+  - Under reduced motion there is no auto-spin and no damping. Otherwise the view spins slowly until the first drag. It draws only while something moves and the stage is on screen (IntersectionObserver, so it stops on a hidden page), never more than one frame per frame.
+- **Which targets, and the data (only published files, nothing new):** dots are `astrometry.per_exposure` rows in `static/data/<key>/investigation.json` with `status: measured`, finite RA/Dec, and identified as the target.
+  - For stars that means `identified === true` and no contaminant. For Solar System bodies it means `identification === 'body'`.
+  - Offsets are gnomonic (the same formulae as `backend/astrometry.py tangent_offsets_arcsec`): from `astrometry.reference` for stars, and from the first measured position for bodies, which have none.
+  - Barnard's Star: **77** dots in 3 visits. Epsilon Indi B: **421** in 4 visits (the one unidentified detection is left out). Pluto: **50** in 2 visits (6 "candidate" and 7 "static_source" detections are left out).
+  - **No panel** for WISE 0855 (all 62 measured detections are `identified: false`, contaminant), Makemake (its 3 are a static source), RW Aurigae, R Draconis and the rest (no positions).
+  - Details holds the counts, the method, and a table of every dot (time UTC, east ″, north ″).
+- **No model line, on purpose (independent review, below):** the first version drew `astrometry.fit_linear` as "Model (computed)". The review showed that this is the no-parallax straight line, which the trials use as their *baseline* (`baseline.id` "linear-tangent-plane"; their model is "linear-pm-fixed-parallax"). It must not be shown under the model's name. The trials' model publishes no path over these dates: the stars' `prediction.json` `track` is null, and Pluto's tracks are for 2027. So, following "if our model path is in the published files", no line is drawn. The panel says "Our files have no computed model path over these dates, so only the measured dots are drawn."
+- **Files:**
+  - New: `static/js/path3d.js` (pure data), `static/js/path3d-ui.js` (three.js scene and 2D fallback), `static/css/path3d.css`, `tests/path3d.test.mjs`.
+  - `static/index.html`: the `#changed-path` host in What changed, the stylesheet link, and the import map re-stamped with `node .github/scripts/stamp-build.mjs static dev` after rebasing on `1b5a189`.
+  - `static/js/main.js`: one `renderPath3d` call in `refreshPanels`, re-drawn only when the target changes.
+  - `static/js/i18n.js`: `path3d.*`.
+- **Independent review (a background workflow of 2 reviewers plus 13 adversarial checks; read only):**
+  - 5 defects confirmed and fixed:
+    - **High:** the render loop could schedule two frames per frame (`update()` fires 'change', which already queued one), doubling every frame. Now it schedules only when none is pending. Measured afterwards: 1 then 7 animation-frame requests per second in headless (software rendering), bounded.
+    - The "Model (computed)" line was the straight-line baseline, so it was removed (see above).
+    - The "no model path" note over-claimed (Pluto has 2027 tracks), so it is now limited to "over these dates".
+    - A failed three.js download was cached for good and called "cannot draw 3D". It now retries, with its own note.
+    - The date labels' CSS shift was overwritten by the label renderer, so the labels are now placed by position.
+  - 9 claims refuted (e.g. Pluto's epoch null test, 2D scale, ResizeObserver loop, a lazy-import race, rendering on a hidden page, which the IntersectionObserver already handles).
+- **Checks (real runs):**
+  - `node --test tests/`: 305 of 305 pass after rebasing on `1b5a189` (B35, B36 and the stamp-script fix). That includes 6 new tests. For each of Barnard's Star, Epsilon Indi B and Pluto, every dot equals its file row: the same `obs_key`, the same `mjd`, and the offset within 10⁻⁶″ of an independent 3D-unit-vector projection, in date order and on the floor. There is no model line, and the stars' prediction tracks are null. The other targets get no panel. The strings are exact, three.js is imported dynamically only, and the reduced-motion rule is in the source.
+  - **Real GPU, final build** (the app's browser pane, Apple M3 Pro, WebGL2, loaded from `127.0.0.1` so that no old `?v=dev` file was cached), from clicking the panel to the first 3D frame:
+    - **1280 px:** Barnard's Star 42 ms, Epsilon Indi B 28 ms, Pluto 30 ms;
+    - **about 390 px:** 26, 27 and 25 ms;
+    - three.js import 6–7 ms; 77 / 421 / 50 dots; no errors; no sideways scroll.
+  - Before the rebase it was 23–40 ms. On `localhost` the pane had cached an old `space-ui.js?v=dev`, because every local build is "dev". That is a local-only effect: deploys stamp the commit.
+  - Headless Chrome, a fresh profile per run, software WebGL (SwiftShader), 3 targets × 1280×900 and 390×844, CDP mouse and key events, final build:
+    - every case draws in 3D, spins normally, and is pixel-identical over 1 s under reduced motion;
+    - a 140 px drag changes the picture;
+    - **Reset with the Enter key gives back a pixel-identical first view**;
+    - Space on the Shadow switch turns it on and changes the picture;
+    - animation-frame requests stay bounded (0–15 per second; software rendering is slow);
+    - no sideways scroll; **no console errors or exceptions**.
+    - Software rendering is much slower than a GPU: the first open took 0.43–2.8 s there and a second open 85–326 ms.
+    - Two earlier runs ended without output and passed on rerun; they were most likely a debug-port clash between my own runs.
+  - Without WebGL (headless with no GPU) at 360×780 for the three targets: the 2D view with 77/421/50 dots and the note, controls and turning caption hidden, `scrollWidth` 360.
+- **Screenshots:** `docs/screens/b34-{barnard,epsindib,pluto}-{1280,390}.png` (3D, reduced motion, final build) and `docs/screens/b34-{barnard,epsindib,pluto}-nowebgl-360.png` (2D fallback).
+- **Found while checking:** `stamp-build.mjs` did nothing when the repository path contained a space. Session A reported it, and Session B fixed it in `1b5a189`.
+- **Not verified:** touch pinch on a real phone, screen-reader speech, and real-GPU timing on the final rebased build.
+
+### Task B40, 15 Nov 2026: play from the targets; the Sky map opens like a planetarium
+
+- **Game from the targets.**
+  - Home's popup and Investigate → What changed show "Play: guess where it goes next" for the targets that have a
+    Beat the physics round: Barnard's Star, Epsilon Indi B and Pluto, matched by trial ID (`barnard-position`,
+    `epsindib-position`, `pluto-position`). No other target shows the button.
+  - It opens that round in Easy mode; the browser's Back returns to Home (popup) or to the investigation.
+  - Home's title block has a "Play Beat the physics" link.
+- **Sky map.**
+  - It opens on the chosen target (the popup's target, else the open investigation, else Barnard's Star) with a
+    60° field in a SIN view.
+  - Constellation lines and names are on by default; the names come from d3-celestial `constellations.json`, the
+    same BSD-3 source.
+  - Drag pans. The bottom-left readout shows "RA …°, Dec …° · field …°".
+  - A row of Fly to chips (Barnard's Star, Epsilon Indi B, WISE 0855, RW Aurigae, R Draconis, Pluto with its
+    picture date) pans smoothly (1.5 s).
+  - The markers and the empty-sky note are unchanged.
+- **D1–D6 layers: skipped.** IRSA's HiPS list has one SPHEREx all-sky layer (the DR1 cube), no separate per-band
+  layers.
+- **Home speed.** With B40, Home measured 80 and 79 (the tree before B40 measured 79–81 tonight).
+  - Preloading the 51 start modules made it worse (74, 74: the first paint was delayed), so it was reverted.
+  - The fix: a small module, `js/early.js`, fills Home's title block as soon as `i18n.js` arrives, on a plain Home
+    address only, so Home's largest text paints before the rest of the code. LCP went from about 5 s to 3.3–4.4 s.
+  - Lighthouse mobile: 90, 82, 86; CLS 0.014.
+  - The stamp script now versions every module script tag, not only `main.js`.
+- **Checks** (github.io build in headless Chrome, at 1280 and 390):
+  - The three popup buttons open the right rounds in Easy mode, and Back returns to Home; WISE 0855 has none.
+  - What changed → Barnard's round (Easy), and Back returns to Barnard's investigation. The title link opens the
+    game.
+  - The Sky map opens in 1.2 s and 1.3 s on Barnard's Star ("RA 269.4465°, Dec +4.7687° · field 60°"), with lines
+    and names fetched.
+  - The Pluto chip pans to RA 308.5539°, Dec −22.9413°, and the Epsilon Indi B chip to RA 331.0964°, Dec −56.8011°.
+  - A click on Epsilon Indi B's marker opens it in Investigate.
+  - No console errors.
+  - `node --test` 308 pass (new `tests/play-skymap-b40.test.mjs`).
+- **Screenshots:** `docs/screens/b40-skymap-1280.png`, `b40-skymap-390.png`, `b40-chip-pluto-1280.png`,
+  `b40-chip-pluto-390.png`, `b40-popup-play-1280.png`.
+
+### Task B37, 15 Nov 2026: "Where is this in the sky?" in Beat the physics (branch `game-sky`, base `31091c0`)
+
+- **What.** Each position round (Barnard's Star, Epsilon Indi B, Pluto) gets a round sky window below the guessing
+  area. It shows IRSA's SPHEREx DR1 all-sky HiPS, live, in Aladin Lite (the same module as B36). It loads when it
+  scrolls into view, and one view is reused from round to round. Every earlier part of the round is unchanged: I
+  compared all 25 parts of the round area with the live site (`31091c0`) and played a full round with all four
+  reveal steps.
+- **View.** Stereographic, seen from inside the sky like a planetarium, with zoom-out capped at 120° so it never
+  becomes a globe. Presets are 60°, 2°, 10′ and "the chart". Our own −/+ buttons and an "N° across" readout sit
+  under the circle, because the circle hides Aladin's corner controls. Constellation lines and names (d3-celestial)
+  have a switch and are labelled as a guide drawing, not SPHEREx data.
+- **Wavelength.** A slider covers the cube's frames from its `properties` (`data_cube_crval3_arr`), 0.75–4.99 µm. It
+  skips frames 50 and 51, which IRSA documents as blank (dichroic) and which return 404. Aladin picks a cube frame on
+  an even frequency scale (`setSliceNumber(42)` fetched frame 17), so frames are requested by frequency. I checked
+  in the browser that the frame on the slider is the tile IRSA serves (0, 10, 42, 101).
+  - Found here: B36's Sky map "first slice" actually shows frame 95 (4.74 µm). It names no wavelength, so I left
+    it unchanged.
+- **Colour.** One wavelength drawn through a colour map (Magma by default, then Inferno, Viridis, Rainbow, and
+  Black and white), with a false-colour note. A blue/green/red composite of three frames did not work in Aladin
+  3.8.2: copies of the same survey shared one frequency, and additive blending did not combine them.
+- **Honesty.** The ring marks the last training measurement, and the square marks the pre-reveal chart area
+  (`guessView`). A test shows the panel is identical with baseline, model, actual and outcome removed. The notes
+  give the chart size against the picture's 12.9″ pixel ("too small to see" only when the chart spans under three
+  pixels; Pluto's 8.4° chart is visible). They also give the survey dates (2025-04-24 to 2026-05-14, not the guess
+  date).
+- **Files.** `static/js/game-sky.js` (new), `static/js/skymap.js` (shared Aladin loader, properties reader,
+  constellation lines and names; a names failure no longer removes the lines), `static/js/coords.js`
+  (`tangentToSky`), `static/js/game-ui.js`, `static/js/i18n.js`, `static/css/style.css`, `static/index.html`
+  (re-stamped import map), `tests/game-sky.test.mjs` (new, 8 tests).
+- **Tests.** `node --test tests/*.mjs`: 313 of 313 pass. pytest was not run (no `.venv` in this checkout; no Python
+  changed).
+- **Not verified:** phone widths. Chrome would not narrow below 1100 px, so the one-column layout under 900 px is
+  untested.
+
+### Fix CF2, 16 Nov 2026 (Session A, at the user's request): live server only on the local machine
+- **Why:** the Space Apps project link is now the Cloudflare Pages copy, https://vestigium-82p.pages.dev. `liveAvailable()` in `static/js/api.js` only checked for `github.io`, so on pages.dev it returned true. Archive-only objects came back into search, Real sky could appear, and coordinate search called a server that does not exist there.
+- **Change:** `liveAvailable()` is true only for `LOCAL_HOSTS` = `localhost`, `127.0.0.1`, `[::1]`, `::1` (case-insensitive). Every other host behaves like the public site: github.io, pages.dev, a custom domain and a LAN address.
+  - It is the only hostname test in the site. Every caller already uses it: main.js's archive-only search group and objects, coordinate search, the Real sky button and panel, and the live API calls in api.js.
+  - home.js and skymap.js mention github.io only in comments. A new test fails if any other module starts testing the host itself.
+  - Unchanged on github.io (public) and localhost (live).
+  - **Changed for LAN addresses:** a phone opening `http://<mac-ip>:8765` now gets the public behaviour. The prepared targets all work; live search does not.
+- **tenger-dev now contains main:** before committing, `tenger-dev` was fast-forwarded to `origin/main` `aa8439c` (the merge of PR #1, which includes B37). This commit sits on top, so main can be updated by a plain fast-forward push. The `cloudflare-mirror` branch was left alone.
+- **Checks (real runs):**
+  - `node --test tests/`: 317 of 317 pass. `tests/live.test.mjs`:
+    - github.io, `vestigium-82p.pages.dev`, `cloudflare-mirror.vestigium-82p.pages.dev`, `vestigium.example.org` and `192.168.1.20` are public: `liveAvailable()` false, and five live calls each reject with `liveUnavailable` and fetch nothing;
+    - `localhost`, `127.0.0.1`, `[::1]` and `LOCALHOST` are live: a request to the same origin's `/api/observe`;
+    - no other module tests the host.
+  - Headless Chrome, a coordinate search for "10 00 24 +02 12 00" on Home:
+    - on `localhost` the Real sky button and panel are present, and the search calls `/api/observe` and `/api/job/…` (unchanged);
+    - on `172.20.10.3` (this Mac's LAN address, now public) there is no Real sky button or panel and **no `/api/` request**;
+    - neither host made any onrender.com request.
+  - **B37's sky view in Beat the physics, before the reveal** (Barnard's Star, 1280 and 390):
+    - **Swapped answers (headless):** the round was opened twice in one browser, the second time with the round files' `model`, `baseline` and `actual` replaced in the browser by far-away values (3 files swapped). The panel's text was identical both times, at both widths, with no console errors and no sideways scroll. The sky picture itself stays black in headless Chrome, so its pixel comparison proves nothing and is not counted.
+    - **Real GPU** (the app's browser, a fresh address): at the chart zoom only the yellow ring ("where SPHEREx last measured it", 29 Mar 2026, a training point) and the blue chart square are drawn. There is no forecast, straight-line or true-position marker, no console errors, and `scrollWidth` 390 at 390. `tests/game-sky.test.mjs` already checks that the ring and square come from the training points only.
+    - **Note (not from our answer files):** the panel says the IRSA survey picture blends observations from 24 Apr 2025 to 14 May 2026. That is after Barnard's last training point but before the round's target date (21 Aug 2026).
+    - At the chart zoom a diamond of the sky stayed black in the app's browser, apparently survey tiles not yet loaded there.
+  - Screenshots: `docs/screens/cf2-game-sky-barnard-{1280,390}.jpg`.
+- **Cloudflare copy:** at the time of the fix, https://vestigium-82p.pages.dev still served the old rule with build "dev", that is, main before this fix. It gets the fix when main is updated with this commit and Cloudflare rebuilds.

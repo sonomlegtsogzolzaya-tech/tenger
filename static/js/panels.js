@@ -2,7 +2,7 @@
 // Evidence and the Spectrum note. Missing files give honest "not published" states, example files are
 // stamped, and nothing here computes a success number of its own.
 import { addCovariance, covarianceEllipse, tangentOffsetArcsec } from './coords.js';
-import { chip, dataTable, details, el, factList, formatNumber, formatUtc, withUnit } from './dom.js';
+import { chip, dataTable, details, downloadLine, el, factList, formatNumber, formatUtc, withUnit } from './dom.js';
 import { has, t, tData } from './i18n.js';
 import { comparisonReasons } from './epochs.js';
 import { categoryChip, categoryNote, exampleChip, trialStatusChip } from './labels.js';
@@ -403,8 +403,11 @@ function legacyEvidence(legacy) {
   ];
 }
 
-/** investigation: contract load result (or null); legacy: { frames, meta, custom }; epochs: { matched, total }. */
-export function renderEvidence(host, { investigation, legacy, epochs }) {
+/**
+ * investigation: contract load result (or null); legacy: { frames, meta, custom }; epochs: { matched, total };
+ * download: { href, file, saveAs, name } of the target's published investigation file (task B30), or null.
+ */
+export function renderEvidence(host, { investigation, legacy, epochs, download = null }) {
   const parts = [];
   if (investigation?.state === 'ok') {
     parts.push(...investigationEvidence(investigation.doc));
@@ -416,6 +419,7 @@ export function renderEvidence(host, { investigation, legacy, epochs }) {
   }
   else if (!legacy?.custom) parts.push(note(investigation && investigation.state !== 'missing' ? stateText(investigation) : t('evidence.waiting')));
   parts.push(...legacyEvidence(legacy ?? {}));
+  if (investigation?.state === 'ok' && download) parts.push(downloadLine([download], download.name));
   host.replaceChildren(...parts.filter(Boolean));
 }
 

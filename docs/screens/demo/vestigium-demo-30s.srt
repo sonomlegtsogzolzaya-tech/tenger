@@ -1,25 +1,20 @@
 1
-00:00:00,000 --> 00:00:04,000
+00:00:00,000 --> 00:00:05,000
 Vestigium: watch the sky move in real NASA SPHEREx pictures.
 
 2
-00:00:04,000 --> 00:00:08,000
-Real pictures, 2010 and 2026: Barnard's Star moved about 168″.
+00:00:05,000 --> 00:00:10,000
+A live 3D map: the planets follow JPL’s orbits through time.
 
 3
-00:00:08,000 --> 00:00:14,000
-We locked a Pluto forecast on GitHub
-before opening the newest pictures.
+00:00:10,000 --> 00:00:13,000
+Pick one of the five NASA challenge targets.
 
 4
-00:00:14,000 --> 00:00:20,000
-5.9″ off: 3,000× closer than a straight line, but
-just outside our 95% oval. A published miss.
+00:00:13,000 --> 00:00:20,000
+Real pictures, 2010 and 2026: Barnard's Star moved about 168″.
 
 5
-00:00:20,000 --> 00:00:24,000
-We found why, and locked new forecasts for 2027.
-
-6
-00:00:24,000 --> 00:00:27,000
-Could SPHEREx see Planet X? We measured it: not in one image.
+00:00:20,000 --> 00:00:26,000
+We measure how it moves from the
+pictures and check it against Gaia.

@@ -42,6 +42,7 @@ export const SOURCES = [
   { id: 'sbdb', links: [['https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html', 'about.link.website']] },
   { id: 'standish', links: [['https://ssd.jpl.nasa.gov/planets/approx_pos.html', 'about.link.website']] },
   { id: 'aladin', ack: 'ack.aladin', links: [['https://aladin.cds.unistra.fr/AladinLite/', 'about.link.website']] },
+  { id: 'celestial', links: [['https://github.com/ofrohn/d3-celestial', 'about.link.website']] },
 ];
 
 /**

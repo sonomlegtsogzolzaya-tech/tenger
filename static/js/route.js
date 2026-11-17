@@ -1,12 +1,15 @@
 // Page state in the URL: parsing, conflict rules and share links. Pure: no DOM.
 //
 // Parameters (old links keep working): ra, dec, fov, target, embed; added: page, panel, band, a, b, mode, v,
-// round (game), lesson (learn) and trial (the reveal on the Predictions page).
+// round (game), lesson (learn), trial (the reveal on the Predictions page) and step (the reveal's step, read once
+// when the reveal opens; not written back).
 // id is an alias of target. Coordinates are authoritative: a target named next to coordinates that point
 // somewhere else is ignored, and the page says so.
 import { separationDeg } from './coords.js';
 
-export const PAGES = ['home', 'investigate', 'predictions', 'game', 'learn', 'about', 'loop'];
+export const PAGES = ['home', 'investigate', 'predictions', 'game', 'learn', 'about', 'loop', 'method'];
+/** The reveal's steps, for ?step=1–6 next to ?trial (task B30: "How it works" links to steps 2 and 6). */
+export const REVEAL_STEPS = 6;
 export const PANELS = ['see', 'changed', 'prediction', 'evidence', 'spectrum'];
 export const MODES = ['blink', 'side', 'swipe', 'diff'];
 export const MAX_FOV_DEG = 2;
@@ -81,6 +84,7 @@ export function parseRoute(search) {
     round: cleanId(params.get('round')),
     lesson: cleanId(params.get('lesson')),
     trial: cleanId(params.get('trial')),
+    step: /^[1-9]$/.test(params.get('step') ?? '') && Number(params.get('step')) <= REVEAL_STEPS ? Number(params.get('step')) : null,
     a: cleanId(params.get('a')),
     b: cleanId(params.get('b')),
     v: cleanId(params.get('v')),

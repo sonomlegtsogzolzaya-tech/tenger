@@ -1,7 +1,9 @@
 // "Asteroid batch" on the Predictions page: how often the truth landed inside our 95% regions, a chart of each
 // trial's distance D against the 2.45 line, model versus straight-line errors, and one compact card per asteroid.
 // Numbers come from the batch file and each asteroid's own trial files.
-import { chip, details, el, formatNumber, formatUtc } from './dom.js';
+import { chip, details, downloadLine, el, formatNumber, formatUtc } from './dom.js';
+import { REAL_BASE } from './contract.js';
+import { TRIAL_FILES, trialFilePath } from './method.js';
 import { has, t, tData } from './i18n.js';
 import { categoryLabel } from './labels.js';
 import { addCovariance, covarianceEllipse } from './coords.js';
@@ -236,7 +238,7 @@ function miniPlot(region, residual) {
   ]);
 }
 
-function card(row, bundle) {
+function card(row, bundle, { example = false } = {}) {
   const trial = okDoc(bundle?.trial);
   const prediction = okDoc(bundle?.prediction);
   const verification = okDoc(bundle?.verification);
@@ -275,6 +277,10 @@ function card(row, bundle) {
       receipt?.url
         ? el('p', { class: 'note' }, [el('span', { text: `${t('batch.frozen')} ` }), el('a', { href: receipt.url, rel: 'noopener', class: 'mono', text: receipt.short })])
         : el('p', { class: 'note', text: receipt?.example ? t('batch.frozenExample') : t('batch.frozenNoLink') }),
+      // Task B30: the asteroid's published trial files (real data only).
+      !example && bundle?.id ? downloadLine(TRIAL_FILES.filter((file) => bundle[file]?.state === 'ok').map((file) => ({
+        href: `${REAL_BASE}${trialFilePath(bundle.id, file)}`, file: `${file}.json`, saveAs: `${bundle.id}-${file}.json`,
+      })), row.name ?? bundle.id) : null,
     ]),
   ]);
 }
@@ -298,7 +304,7 @@ export function batchSection(data) {
     n > 0 && !scored ? el('p', { class: 'batch-headline' }, [el('strong', { text: t('batch.headline', { k: String(k), n: String(n) }) })]) : null,
     summary(batch),
     el('div', { class: 'batch-charts' }, [distanceChart(batch)]),
-    details(el('div', { class: 'batch-cards' }, batch.rows.map((row) => card(row, bundleOf(row.trialId)))), { label: t('batch.cardsDetails', { n: String(batch.rows.length) }) }),
+    details(el('div', { class: 'batch-cards' }, batch.rows.map((row) => card(row, bundleOf(row.trialId), { example: Boolean(batch.example) }))), { label: t('batch.cardsDetails', { n: String(batch.rows.length) }) }),
   ]);
 }
 

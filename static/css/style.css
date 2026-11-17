@@ -276,6 +276,10 @@ details.more-info > p, details.more-info > ul, details.more-info > div { margin-
 .nav button:hover { color: var(--text); border-color: transparent; }
 .nav button[aria-current="page"] { background: transparent; border-color: transparent; color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); border-radius: 0; }
 .menu-toggle { display: none; margin-left: auto; }
+/* Task B33: no menu label ever wraps. The full menu shows only from the width where it fits on one line (measured with
+   a 1-px sweep; see docs/IMPLEMENTATION_STATUS.md, B33), with 11 px button sides; below that it collapses into "Menu". */
+.nav button, .nav-more > summary { white-space: nowrap; }
+.nav > * { flex: none; }
 
 .example-banner {
   position: fixed;
@@ -381,107 +385,26 @@ body[data-page="home"] .site-footer, body[data-page="investigate"] .site-footer 
 }
 .scene { position: absolute; inset: 0; }
 
-/* ---------- Home's first screen (task B16): what the site is, then the 3D map below ---------- */
-/* Wide screens: Home scrolls inside itself, the first screen on top and the 3D map (the same size as before)
-   under it; an investigation hides the first screen, so the map behind it is where it always was. */
-body[data-page="home"] .page-home { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+/* ---------- Home's title block and menu bits (B16, kept by B29) ---------- */
 body[data-page="investigate"] .home-hero { display: none; }
 .home-stage { position: relative; height: 100%; }
-.home-hero { position: relative; min-height: 100%; display: grid; align-content: center; padding: var(--s4) var(--s3) var(--s6); }
-.hero-inner { width: min(760px, 100%); margin: 0 auto; display: grid; justify-items: start; gap: var(--s2); }
-.hero-title { font: 700 clamp(40px, 6.4vw, 78px)/1.02 var(--font-head); letter-spacing: -0.02em; margin: 0; }
-.hero-title:focus { outline: none; }
-.hero-line { max-width: 58ch; margin: 0; font-size: clamp(17px, 1.7vw, 21px); line-height: 1.45; color: var(--text); }
-.hero-small { max-width: 60ch; margin: -4px 0 0; font-size: 15px; color: var(--muted); }
-.hero-watch {
-  display: inline-flex; align-items: center; justify-content: center; min-height: 54px; padding: 0 28px; margin-top: var(--s1);
-  border-radius: var(--radius); background: var(--accent); color: #04121d; font: 700 18px var(--font-head); text-decoration: none;
-  box-shadow: 0 8px 28px rgba(var(--accent-rgb), 0.28);
-}
-.hero-watch:hover { filter: brightness(1.08); }
-.hero-watch:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
-/* The Planet X card (task B16): one link, in the hypothetical orange, with a "New" chip. */
-.hero-planetx {
-  display: grid; gap: 4px; justify-items: start; width: min(560px, 100%); min-height: var(--tap); padding: 14px 18px;
-  border: 1px solid rgba(255, 169, 77, 0.6); border-left: 4px solid var(--hypothetical); border-radius: var(--radius);
-  background: rgba(255, 169, 77, 0.1); color: var(--text); text-decoration: none;
-}
-.hero-planetx:hover { background: rgba(255, 169, 77, 0.16); border-color: var(--hypothetical); }
-.hero-planetx:focus-visible { outline: 3px solid var(--hypothetical); outline-offset: 3px; }
-.hero-planetx-title { font: 700 17px/1.3 var(--font-head); color: var(--hypothetical); }
-.hero-planetx-line { min-height: 1.45em; font-size: 15px; color: var(--text); }
 .chip-new { padding: 1px 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #1c1205; background: var(--hypothetical); border-color: var(--hypothetical); }
 .nav-planetx { position: relative; }
 .nav-planetx { display: inline-flex; align-items: center; }
 .nav .new-dot { display: inline-block; flex: none; width: 8px; height: 8px; min-width: 0; padding: 0; margin: 0 0 0 7px; border: 0; border-radius: 50%; background: var(--hypothetical); box-shadow: 0 0 0 3px rgba(255, 169, 77, 0.22); }
 .more-short { display: none; }
-@media (min-width: 981px) {
+@media (min-width: 1240px) {
   /* The full menu fits on one line: "More" stands for "Guided tour and more" (still its accessible name). */
   .more-short { display: inline; }
+  .nav button { padding: 0 11px; }
+  .nav-more > summary { padding: 0 10px; }
   .more-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
-.hero-links { display: flex; flex-wrap: wrap; gap: 0 var(--s3); margin: -4px 0 0; }
-.hero-links a { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--accent); font-weight: 600; }
-.hero-pick { display: grid; gap: var(--s1); width: 100%; margin-top: var(--s2); }
-.hero-search { width: min(420px, 100%); }
-@media (max-width: 600px) { .hero-watch { justify-self: stretch; width: 100%; } }
-.hero-search .search-line { grid-template-columns: minmax(0, 1fr) auto; }
-.hero-search .search-line input { grid-column: auto; min-height: 42px; font-size: 15px; }
-.hero-search .search-list { top: 52px; }
-.hero-down { position: absolute; left: 50%; bottom: var(--s2); transform: translateX(-50%); display: grid; place-items: center; width: var(--tap); height: var(--tap); color: var(--muted); }
-.hero-down span { width: 12px; height: 12px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translate(-3px, -3px); }
-.hero-down:hover { color: var(--text); }
-/* ---------- The first screen over the live 3D scene (task B25) ---------- */
-/* Text over the scene sits on a dark wash (at least 0.78 opaque behind every line), so even over the Sun the muted
-   lines keep about 6.8:1 and the links 5.8:1; labels in the scene stay out from behind the text (a label blocker). */
-.home-hero .hero-small, .home-hero .eyebrow { color: #c3cddb; }
 .hero-explore { display: none; }
 .reveal-loop-wrap { margin: 0; }
 .reveal-loop { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--accent); font-weight: 600; }
 .reveal-loop[hidden] { display: none; }
 .space-close { display: none; }
-@media (min-width: 901px) {
-  /* Wide screens: the 3D stage sticks to the top of Home; the first screen's text lies over its left side and
-     scrolls off it, uncovering the full 3D section (time control, Fly to, colour key, target list). */
-  body[data-page="home"] .home-hero {
-    z-index: 5; justify-items: start; pointer-events: none; padding-left: max(5vw, 40px);
-    background: linear-gradient(90deg, rgba(5, 7, 13, 0.88) 0, rgba(5, 7, 13, 0.86) min(720px, 58%), rgba(5, 7, 13, 0) min(1060px, 85%));
-  }
-  body[data-page="home"] .home-hero .hero-inner { width: min(620px, 52vw); margin: 0; pointer-events: auto; }
-  body[data-page="home"] .hero-down { pointer-events: auto; left: max(5vw, 40px); transform: none; }
-  body[data-page="home"] .home-stage { position: sticky; top: 0; margin-top: calc(var(--chrome) - 100vh); }
-  body[data-page="home"] .home-spacer { height: 100%; }
-  body:not([data-page="home"]) .home-spacer { display: none; }
-  .page-home.hero-mode .home-stage :is(.console-left, .space-tools, .space-hud, .space-time, .map-key, .map-caption) {
-    opacity: 0; visibility: hidden; pointer-events: none;
-  }
-  .home-stage :is(.console-left, .space-tools, .space-hud, .space-time, .map-key, .map-caption) { transition: opacity 0.35s ease, visibility 0.35s; }
-}
-@media (max-width: 900px) {
-  /* Phones: the scene lies behind the first screen and never takes a touch, so dragging scrolls the page;
-     "Explore in 3D" opens it full screen with the time control and Fly to. */
-  .page-home { position: relative; }
-  .home-hero { position: relative; z-index: 2; background: rgba(5, 7, 13, 0.78); }
-  .hero-explore { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 18px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: rgba(5, 7, 13, 0.6); color: var(--text); font-weight: 600; }
-  .hero-explore[hidden] { display: none; }
-  body:not(.exploring) .page-home .scene { position: static; }
-  body:not(.exploring) .page-home .space3d { position: absolute; top: 0; left: 0; right: 0; height: var(--hero-h, 100vh); z-index: 1; border-radius: 0; pointer-events: none; }
-  body:not(.exploring) .page-home .space3d * { pointer-events: none !important; }
-  body:not(.exploring) .page-home :is(.space-tools, .space-hud, .space-time, .map-caption.space-3d-only) { display: none !important; }
-  body.exploring .page-home .scene {
-    position: fixed; inset: var(--chrome) 0 0 0; z-index: 36; display: flex; flex-direction: column; gap: 8px;
-    padding: 8px; background: var(--bg); overflow-y: auto;
-  }
-  body.exploring .page-home .space3d { position: relative; flex: 1 1 auto; min-height: 320px; height: auto; order: 2; }
-  body.exploring .page-home .space-tools { order: 1; }
-  body.exploring .page-home .space-time { order: 3; }
-  body.exploring .page-home :is(.space-hud, .map-caption, .map-key, .map-stage) { display: none; }
-  body.exploring .space-close { display: inline-flex; }
-  body.exploring { overflow: hidden; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .home-stage :is(.console-left, .space-tools, .space-hud, .space-time, .map-key, .map-caption) { transition: none; }
-}
 /* "Guided tour and more" in the menu. */
 .nav-more { position: relative; }
 .nav-more > summary { min-height: var(--tap); display: inline-flex; align-items: center; padding: 0 12px; border-radius: var(--radius-sm); cursor: pointer; color: var(--muted); font-weight: 500; list-style: none; }
@@ -1880,7 +1803,7 @@ kbd {
 .limits-list li p { margin: 0; }
 .limits-do { color: var(--muted); font-size: 14px; margin-top: 2px !important; }
 
-@media (max-width: 980px) {
+@media (max-width: 1239px) {
   .menu-toggle { display: inline-flex; align-items: center; }
   .nav {
     position: fixed;
@@ -1900,6 +1823,8 @@ kbd {
   .nav button { justify-content: flex-start; text-align: left; }
   .nav button[aria-current="page"] { box-shadow: inset 3px 0 0 var(--accent); }
   .nav .nav-extra { margin: var(--s1) 0 0; }
+}
+@media (max-width: 1100px) {
   .reveal-body { grid-template-columns: minmax(0, 1fr); }
   .reveal-stage { width: min(100%, calc(100dvh - 120px)); margin: 0 auto; }
 }
@@ -1956,62 +1881,9 @@ body.embed .panel-title { top: 0; }
   .panel-title { top: 61px; }
 }
 
-@media (min-width: 1200px) {
-  /* Room for the open colour key on the right, so it never covers a target. */
-  .map-stage, .map-caption { right: calc(280px + var(--s4)); }
-  .map-caption { max-width: calc(100% - var(--rail-w) - 280px - 64px); }
-}
-
 @media (max-width: 900px) {
-  /* Home becomes a scrolling column: search, map, colour key; the target rail is a bottom sheet. */
-  .page-home { position: static; overflow: visible; padding-bottom: 72px; display: flex; flex-direction: column; }
-  .home-hero { order: 0; min-height: 0; padding: var(--s2) var(--s2) var(--s4); }
-  .home-stage { display: contents; }
-  .hero-title { font-size: clamp(38px, 11vw, 52px); }
-  .hero-inner { gap: 12px; }
-  .hero-line { font-size: 17px; }
-  .hero-planetx { width: 100%; }
-  .hero-planetx-title { font-size: 16px; }
-  .hero-search { width: 100%; }
-  .hero-down { display: none; }
   .nav-more { width: 100%; }
   .nav-more-list { position: static; min-width: 0; box-shadow: none; margin-top: 4px; }
-  .scene { order: 2; }
-  .scene { position: relative; inset: auto; display: grid; gap: 12px; padding: 0 var(--s2) var(--s2); }
-  .map-stage { position: relative; inset: auto; container-type: normal; }
-  .map-canvas { width: 100%; }
-  .map-caption, .map-key { position: static; width: auto; max-width: none; margin: 0; }
-  .map-key { padding: 0 var(--s2) var(--s1); }
-  .space3d { position: relative; inset: auto; order: 1; height: clamp(340px, 112vw, 560px); border-radius: var(--radius); }
-  .map-stage { order: 1; }
-  .space-tools, .space-hud { position: static; order: 2; }
-  /* The containing block of the Fly to list; inset auto drops the wide-screen offsets. */
-  .space-tools { position: relative; inset: auto; }
-  .space-time { position: static; order: 1; width: auto; max-width: none; margin: 0; justify-content: space-between; }
-  /* Phones (task B16): LIVE, play, date and the speed slider in one compact row. */
-  .space-time { flex-wrap: nowrap; gap: 6px; padding: 4px 8px; }
-  .time-live { flex: none; padding: 0 8px; }
-  .time-now { flex: none; flex-direction: column; align-items: flex-start; gap: 0; }
-  .time-date { font-size: 13px; }
-  .time-utc { font-size: 10.5px; }
-  .time-speed, .time-speed input[type="range"] { width: 100%; min-width: 0; }
-  .time-speed { flex: 1 1 auto; min-width: 64px; }
-  .time-rate-text { font-size: 11px; }
-  .time-note { flex-basis: auto; }
-  .space-hud { width: fit-content; }
-  .map-caption { order: 3; }
-  .map-key { order: 4; }
-  .console-left { display: contents; }
-  .search-card { margin: var(--s2) var(--s2) 12px; }
-  .rail {
-    position: fixed;
-    inset: auto 0 0 0;
-    z-index: 30;
-    max-height: 70vh;
-    border-radius: var(--radius) var(--radius) 0 0;
-    border-bottom: 0;
-  }
-  .rail-toggle[aria-expanded="false"] { border-radius: var(--radius) var(--radius) 0 0; }
   .sky-panel { position: fixed; inset: calc(var(--chrome) + var(--s1)) var(--s1) auto var(--s1); width: auto; max-height: calc(100vh - var(--chrome) - 16px); overflow-y: auto; }
 }
 
@@ -2260,3 +2132,317 @@ body.embed .panel-title { top: 0; }
 body[data-page="investigate"] .page-investigate { background: var(--bg); }
 body[data-page="investigate"] .page-home .home-stage :is(.space3d, .space3d *, .space-tools, .space-hud, .space-time, .map-caption.space-3d-only, .map-key, .console-left),
 body[data-page="investigate"] .page-home .home-hero { visibility: hidden !important; pointer-events: none !important; }
+
+/* ---------- Home is the Solar System (task B29) ---------- */
+/* One view: the 3D Solar System fills Home below the header. Over it: a compact title block (top-left), the Famous
+   targets rail (right; phones: a swipe row at the bottom), the icon toolbar, the Key and the "not to scale" chip
+   (bottom-left) and one compact time bar (bottom-centre). */
+.page-home { --famous-w: 300px; }
+.home-hero {
+  position: absolute; top: var(--s2); left: var(--s2); z-index: 6; width: min(340px, calc(100% - var(--famous-w) - 64px));
+  display: grid; justify-items: start; gap: 8px; padding: 14px 16px 16px;
+  background: rgba(5, 7, 13, 0.8); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.hero-title { font: 700 clamp(26px, 2.5vw, 32px)/1.05 var(--font-head); letter-spacing: -0.01em; margin: 0; }
+.hero-title:focus { outline: none; }
+.hero-line { margin: 0; font-size: 15px; line-height: 1.4; color: #c3cddb; }
+.hero-watch {
+  display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 18px; margin-top: 2px;
+  border-radius: var(--radius); background: var(--accent); color: #04121d; font: 700 15.5px var(--font-head); text-decoration: none;
+  box-shadow: 0 6px 22px rgba(var(--accent-rgb), 0.25);
+}
+.hero-watch:hover { filter: brightness(1.08); }
+.hero-watch:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+/* The Planet X chip: one link to the Lab, in the hypothetical orange. */
+.hero-planetx {
+  display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); padding: 0 14px; border-radius: 999px;
+  border: 1px solid rgba(255, 169, 77, 0.6); background: rgba(255, 169, 77, 0.1); color: var(--text); font-size: 13.5px; font-weight: 600; text-decoration: none;
+}
+.hero-planetx:hover { background: rgba(255, 169, 77, 0.18); border-color: var(--hypothetical); }
+.hero-planetx:focus-visible { outline: 3px solid var(--hypothetical); outline-offset: 3px; }
+.hero-planetx-new { color: var(--hypothetical); font-weight: 700; }
+
+/* The Famous targets rail. */
+.famous {
+  position: absolute; top: var(--s2); right: var(--s2); bottom: var(--s2); width: var(--famous-w); z-index: 5;
+  display: flex; flex-direction: column; gap: 6px; padding: 10px; min-height: 0;
+  background: rgba(5, 7, 13, 0.74); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.famous-title { margin: 2px 4px 0; font: 600 12.5px var(--font-head); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.famous-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter-chip { min-height: 36px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: transparent; border: 1px solid var(--border-strong); color: var(--muted); }
+.filter-chip::before { content: ''; position: absolute; inset: -4px 0; }
+.filter-chip { position: relative; }
+.filter-chip:hover { color: var(--text); border-color: var(--accent); }
+.filter-chip[aria-pressed="true"] { color: #04121d; background: var(--accent); border-color: var(--accent); }
+.famous-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.famous-list li { margin: 0; }
+.famous-card {
+  width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 10px; min-height: 48px; padding: 3px 8px; text-align: left;
+  background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-left: 3px solid var(--c); border-radius: var(--radius-sm);
+  color: var(--text); transition: opacity 0.25s ease, background 0.2s ease;
+}
+.famous-card:hover { border-color: var(--border-strong); border-left-color: var(--c); background: rgba(var(--accent-rgb), 0.07); }
+.famous-card[aria-pressed="true"] { border-color: var(--accent); border-left-color: var(--c); background: rgba(var(--accent-rgb), 0.15); }
+.famous-card.is-dim { opacity: 0.35; }
+.famous-thumb { flex: none; width: 40px; height: 40px; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, 0.04); }
+.famous-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.famous-dot, .pop-thumb .famous-dot { display: grid; place-items: center; width: 100%; height: 100%; }
+.famous-dot::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.famous-words { display: grid; gap: 1px; min-width: 0; }
+.famous-words strong { font: 600 14px/1.25 var(--font-head); }
+/* Task B29g: a card line wraps rather than cut a qualifier ("confirmation pending") off with an ellipsis. */
+.famous-words small { font-size: 12.5px; line-height: 1.3; color: var(--muted); }
+
+/* The popup of a chosen target. */
+.target-pop {
+  position: absolute; top: var(--s2); right: calc(var(--famous-w) + 2 * var(--s2)); z-index: 7; width: 300px;
+  display: grid; gap: 10px; padding: 14px 14px 14px 16px; border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.target-pop[hidden] { display: none; }
+.pop-head { display: flex; gap: 12px; align-items: center; padding-right: 36px; }
+.pop-thumb { flex: none; width: 56px; height: 56px; border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, 0.04); }
+.pop-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.target-pop h3 { margin: 0; font: 700 18px/1.2 var(--font-head); }
+.pop-line { margin: 2px 0 0; color: #c3cddb; font-size: 14px; }
+.pop-status { margin: 0; }
+.pop-close { position: absolute; top: 4px; right: 4px; width: var(--tap); min-width: var(--tap); padding: 0; font-size: 22px; line-height: 1; }
+.pop-see { width: 100%; }
+
+/* Space labels: the chosen target and the type filter. */
+.space-label.is-selected { color: #04121d; background: var(--accent); border-color: var(--accent); }
+.space-label.is-match { border-width: 2px; }
+.space-label.is-dimmed:not(.is-faded):not(.is-end-on) { opacity: 0.35; }
+
+/* The icon toolbar, bottom-left. */
+.space-tools { top: auto; bottom: var(--s2); left: var(--s2); flex-wrap: nowrap; gap: 6px; }
+.tool-icon, .space-fly > summary.tool-icon { width: var(--tap); min-width: var(--tap); padding: 0; justify-content: center; }
+.space-fly > summary.tool-icon::after { display: none; }
+.tool-text { font: 700 13px var(--font-head); }
+.space-fly-list { top: auto; bottom: calc(100% + 6px); width: 300px; }
+
+/* The Key (with the "Planets on …" line, the layers and About this map) and the chip, above the toolbar. */
+.map-key { top: auto; right: auto; left: var(--s2); bottom: calc(var(--s2) + var(--tap) + 8px); width: auto; max-width: 320px; padding: 0 12px; }
+/* Open, the Key may cover the title block (it is the visitor's choice); it never runs under the toolbar. */
+.map-key[open] { z-index: 8; width: 320px; padding-bottom: 12px; max-height: calc(100% - var(--tap) - 40px); overflow-y: auto; overscroll-behavior: contain; }
+.map-key summary { min-height: 40px; font-size: 13.5px; }
+.map-key .space-hud { position: static; inset: auto; padding: 6px 10px; margin: 4px 0 8px; background: rgba(5, 7, 13, 0.4); pointer-events: auto; }
+.key-line { margin: 0 0 8px; }
+.key-layers { display: grid; gap: 2px; margin: 10px 0 4px; }
+.key-layers .eyebrow { margin: 0; }
+.map-caption { left: calc(var(--s2) + 92px); right: auto; bottom: calc(var(--s2) + var(--tap) + 8px); max-width: none; margin: 0; padding: 4px 12px; min-height: 40px; display: inline-flex; align-items: center; font-size: 12.5px; }
+
+/* Switches: Auto rotate (time bar) and the Key's layers. */
+.switch { display: inline-flex; align-items: center; justify-content: flex-start; gap: 10px; min-height: var(--tap); padding: 0 6px; background: transparent; border: 0; color: var(--text); font-weight: 600; font-size: 13.5px; }
+.switch-track { position: relative; flex: none; width: 36px; height: 20px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); border: 1px solid var(--border-strong); transition: background 0.2s ease; }
+.switch-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform 0.2s ease, background 0.2s ease; }
+.switch[aria-checked="true"] .switch-track { background: rgba(var(--accent-rgb), 0.35); border-color: var(--accent); }
+.switch[aria-checked="true"] .switch-thumb { transform: translateX(16px); background: var(--accent); }
+.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+/* One compact time bar, bottom-centre between the toolbar and the rail. */
+.space-time {
+  bottom: var(--s2); left: calc(var(--s2) + 4 * var(--tap) + 30px); right: calc(var(--famous-w) + 2 * var(--s2));
+  max-width: calc(100% - var(--famous-w) - 4 * var(--tap) - 80px); gap: 6px 12px; padding: 2px 10px;
+}
+.space-time .time-date { font-size: 15px; }
+.space-time .time-speed { min-width: 150px; }
+.space-time .time-speed input[type="range"] { width: 150px; }
+.space-time .time-live { min-width: 64px; font-size: 12.5px; }
+
+/* The hint over the scene; gone after the first interaction. */
+.space-hint {
+  position: absolute; z-index: 4; left: calc(var(--s2) + 360px); right: calc(var(--famous-w) + 2 * var(--s2)); top: var(--s2);
+  width: fit-content; margin: 0 auto; padding: 6px 14px; border-radius: 999px; pointer-events: none;
+  background: rgba(5, 7, 13, 0.72); border: 1px solid var(--border); color: #c3cddb; font-size: 13px; transition: opacity 0.6s ease;
+}
+.space-hint[hidden] { display: none; }
+.space-hint.is-gone { opacity: 0; }
+
+/* The 2D map (no WebGL, or the visitor's choice) in the free area. */
+.map-stage { left: var(--s2); right: calc(var(--famous-w) + 2 * var(--s2)); top: var(--s2); bottom: calc(2 * var(--tap) + 32px); }
+
+/* Search: a small icon in the header; the box opens under it. */
+.head-search { position: relative; flex: none; }
+.head-search > summary { list-style: none; display: inline-grid; place-items: center; height: var(--tap); cursor: pointer; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); }
+.head-search > summary::-webkit-details-marker { display: none; }
+.head-search[open] > summary { border-color: var(--accent); color: var(--accent); }
+.head-search-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; width: min(380px, calc(100vw - 16px)); padding: 12px; border-radius: var(--radius); box-shadow: var(--shadow); }
+.head-search .search-line { grid-template-columns: minmax(0, 1fr) auto; }
+.head-search .search-line input { grid-column: auto; min-height: 42px; font-size: 15px; }
+.head-search .search-list { top: 64px; }
+
+body[data-page="investigate"] .page-home :is(.famous, .target-pop, .space-hint) { visibility: hidden !important; pointer-events: none !important; }
+
+@media (max-width: 1100px) and (min-width: 901px) {
+  .page-home { --famous-w: 260px; }
+  .space-hint { display: none; }
+}
+
+/* Phones: the Solar System fills the first screen, the title on top and the target row at the bottom. The scene takes
+   no touch (dragging scrolls the page); "Explore in 3D" gives full-screen control. */
+@media (max-width: 900px) {
+  .page-home { position: relative; inset: auto; overflow: visible; }
+  /* Task B35: 40 px short of the screen, so the "More to explore" heading shows below the target row. */
+  .home-stage { height: calc(100svh - var(--chrome) - 40px); min-height: 540px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+  .scene { position: absolute; inset: 0; }
+  .space3d { position: absolute; inset: 0; border-radius: 0; }
+  body:not(.exploring) .page-home .space3d { pointer-events: none; }
+  body:not(.exploring) .page-home .space3d * { pointer-events: none !important; }
+  body:not(.exploring) .page-home :is(.space-tools, .space-time) { display: none !important; }
+  .home-hero { position: relative; top: auto; left: auto; width: auto; margin: 8px; padding: 12px 14px; gap: 6px; background: rgba(5, 7, 13, 0.78); }
+  .hero-title { font-size: 26px; }
+  .hero-line { font-size: 14.5px; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hero-explore { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 16px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: rgba(5, 7, 13, 0.6); color: var(--text); font-weight: 600; }
+  .hero-explore[hidden] { display: none; }
+  .famous { position: relative; inset: auto; width: auto; z-index: 5; margin: 0; padding: 8px 0 10px; gap: 6px; border: 0; border-radius: 0; background: linear-gradient(rgba(5, 7, 13, 0), rgba(5, 7, 13, 0.88) 30%); }
+  .famous-title { margin: 0 12px; }
+  .famous-filters, .famous-list { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 0 12px; scroll-padding: 0 12px; }
+  .famous-filters::-webkit-scrollbar, .famous-list::-webkit-scrollbar { display: none; }
+  .famous-filters { display: flex; }
+  .filter-chip { flex: none; min-height: 40px; }
+  /* Heights reserved before the data load, so the row and what sits on it never shift (CLS). */
+  .famous-filters { min-height: 40px; }
+  .famous-list { display: flex; gap: 8px; min-height: 66px; scroll-snap-type: x mandatory; touch-action: pan-x pan-y; }
+  .famous-card { min-height: 66px; }
+  .famous-list li { flex: none; scroll-snap-align: start; }
+  .famous-card { width: 264px; }
+  .target-pop { position: fixed; top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; z-index: 40; }
+  .map-key, .map-caption { position: absolute; bottom: calc(var(--famous-h, 190px) + 6px); z-index: 5; }
+  .map-key { left: 8px; right: auto; max-width: calc(100% - 16px); }
+  .map-key[open] { width: min(320px, calc(100vw - 16px)); max-height: calc(100svh - var(--chrome) - var(--famous-h, 190px) - 140px); }
+  .map-caption { left: 72px; }
+  .space-hint { left: 8px; right: 8px; top: auto; bottom: calc(var(--famous-h, 190px) + 56px); }
+  .map-stage { position: absolute; inset: 120px 8px calc(var(--famous-h, 190px) + 56px); container-type: size; }
+  /* Explore in 3D: the scene full screen with the toolbar, the time bar and Fly to. */
+  body.exploring .page-home .scene {
+    position: fixed; inset: var(--chrome) 0 0 0; z-index: 36; display: flex; flex-direction: column; gap: 8px;
+    padding: 8px; background: var(--bg); overflow-y: auto;
+  }
+  body.exploring .page-home .space3d { position: relative; inset: auto; flex: 1 1 auto; min-height: 320px; height: auto; order: 2; border-radius: var(--radius); }
+  body.exploring .page-home .space-tools { position: relative; inset: auto; order: 1; flex-wrap: wrap; }
+  body.exploring .page-home .space-time { position: static; order: 3; width: auto; max-width: none; margin: 0; justify-content: space-between; }
+  body.exploring .page-home :is(.map-caption, .map-key, .map-stage, .space-hint) { display: none; }
+  body.exploring .space-close { display: inline-flex; }
+  body.exploring { overflow: hidden; }
+  body.exploring .space-fly-list { top: calc(100% + 6px); bottom: auto; }
+  .space-time { flex-wrap: nowrap; gap: 6px; padding: 4px 8px; }
+  .time-live { flex: none; padding: 0 8px; }
+  .time-now { flex: none; flex-direction: column; align-items: flex-start; gap: 0; }
+  .space-time .time-date { font-size: 13px; }
+  .time-utc { font-size: 10.5px; }
+  .space-time .time-speed, .space-time .time-speed input[type="range"] { width: 100%; min-width: 0; }
+  .space-time .time-speed { flex: 1 1 auto; min-width: 64px; }
+  .time-rate-text { font-size: 11px; }
+  .auto-switch { flex: none; font-size: 12px; gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .famous-card, .space-hint, .switch-track, .switch-thumb { transition: none; }
+}
+@media (max-width: 900px) {
+  /* Home's first screen runs edge to edge under the header. */
+  body[data-page="home"] main { padding: var(--chrome) 0 0; }
+}
+@media (max-width: 900px) {
+  /* The search box opens across the screen under the header. */
+  .head-search-pop { position: fixed; left: 8px; right: 8px; top: calc(var(--chrome) + 6px); width: auto; }
+}
+
+/* The Space Apps line (task B30) where the site footer is hidden: under the Famous targets and at the end of the
+   Investigate panel. */
+.famous-foot, .inv-foot { margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.4; }
+.famous-foot { margin-top: auto; padding: 4px 4px 0; }
+.inv-foot { padding: 12px var(--s2) var(--s2); }
+@media (max-width: 900px) {
+  .famous-foot { margin: 0; padding: 0 12px; }
+}
+
+/* ---------- More to explore (task B35): prepared objects, pictures only ---------- */
+/* Wide screens: the section sits in the Famous targets rail under the 8 cards, and the whole rail scrolls. */
+.famous { overflow-y: auto; overscroll-behavior: contain; }
+.famous > .famous-list { flex: none; overflow: visible; }
+.explore-more { display: grid; gap: 8px; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+.explore-groups { display: grid; gap: 10px; }
+.explore-group { display: grid; gap: 4px; }
+.explore-group-title { margin: 0 4px; font: 600 12.5px var(--font-head); color: var(--muted); }
+.explore-card { border-left-style: dashed; }
+.explore-card .explore-only { color: var(--hypothetical); font-weight: 600; }
+body[data-page="investigate"] .page-home .explore-more { visibility: hidden; }
+/* Phones: below the first screen, one swipe row per group. */
+@media (max-width: 900px) {
+  .famous { overflow: visible; }
+  #page-home > .explore-more { margin: 0; padding: 14px 0 24px; border-top: 1px solid var(--border); background: var(--bg); }
+  #page-home > .explore-more > .famous-title { margin: 0 12px; }
+  .explore-group-title { margin: 0 12px; }
+  .explore-list { display: flex; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding: 0 12px; scroll-snap-type: x mandatory; touch-action: pan-x pan-y; }
+  .explore-list::-webkit-scrollbar { display: none; }
+  .explore-list li { flex: none; scroll-snap-align: start; }
+  .explore-list .famous-card { width: 264px; min-height: 66px; }
+  body[data-page="home"] .page-home { padding-bottom: 0; }
+}
+
+/* ---------- Sky map (task B36): the whole sky over Home, Close returns ---------- */
+.skymap { position: fixed; inset: var(--chrome) 0 0 0; z-index: 45; display: flex; flex-direction: column; background: var(--bg); }
+.skymap[hidden] { display: none; }
+.skymap-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 16px; border-bottom: 1px solid var(--border); }
+.skymap-bar h2 { margin: 0 6px 0 0; font: 700 18px var(--font-head); }
+.skymap-chip { margin: 0; font-size: 12.5px; }
+.skymap-close { margin-left: auto; }
+.skymap-status { margin: 0; padding: 6px 16px; }
+.skymap-status:empty { display: none; }
+.skymap-view { position: relative; flex: 1 1 auto; min-height: 0; }
+.skymap-note { position: absolute; z-index: 6; left: 50%; bottom: 16px; transform: translateX(-50%); width: max-content; max-width: min(560px, calc(100% - 32px)); margin: 0; padding: 10px 14px; font-size: 14px; }
+.skymap-note[hidden] { display: none; }
+body.skymap-open { overflow: hidden; }
+.hero-skymap { display: none; }
+/* Phones only: "Explore in 3D" and "Sky map" side by side (both hidden on wide screens). */
+.hero-actions { display: none; }
+@media (max-width: 900px) { .hero-actions { display: flex; flex-wrap: wrap; gap: 8px; } }
+@media (max-width: 900px) {
+  .hero-skymap { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap); padding: 0 16px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: rgba(5, 7, 13, 0.6); color: var(--text); font-weight: 600; }
+  .skymap-bar { padding: 6px 8px; }
+  .skymap-bar h2 { font-size: 16px; }
+}
+
+
+/* ---------- Task B40: Play buttons, a planetarium-like Sky map ---------- */
+.hero-game { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--accent); font-weight: 600; font-size: 14.5px; }
+.pop-play { width: 100%; }
+.pop-play[hidden], .changed-play[hidden] { display: none; }
+.changed-play { margin: 8px 0; }
+.skymap-readout { position: absolute; z-index: 6; left: 12px; bottom: 56px; margin: 0; padding: 4px 10px; border-radius: var(--radius-sm); background: rgba(5, 7, 13, 0.72); color: #c3cddb; font: 500 12.5px var(--font-mono); pointer-events: none; }
+.skymap-readout:empty { display: none; }
+.skymap-fly { flex: none; display: flex; align-items: center; gap: 6px; padding: 6px 12px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--border); }
+.skymap-fly:empty { display: none; }
+.skymap-fly::-webkit-scrollbar { display: none; }
+.skymap-chip-fly { flex: none; background: rgba(5, 7, 13, 0.72); }
+/* Beat the physics: "Where is this in the sky?" (game-sky.js), the real SPHEREx sky around a position round. */
+.game-sky { margin-top: var(--s3); padding: var(--s3); border: 1px solid var(--border); border-radius: var(--radius); }
+.game-sky-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.game-sky-head h3 { margin: 0; }
+.game-sky-body { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--s3); align-items: start; margin-top: 12px; }
+.game-sky-dome { display: grid; justify-items: center; gap: 8px; }
+/* A round window onto the sky, like looking up through a dome. */
+.game-sky-frame { position: relative; width: min(100%, 560px); aspect-ratio: 1 / 1; border-radius: 50%; overflow: hidden; background: #000; border: 1px solid var(--border-strong); box-shadow: 0 0 0 6px rgba(var(--accent-rgb), 0.08), 0 0 40px rgba(var(--accent-rgb), 0.15); isolation: isolate; }
+.game-sky-dome-bar { display: flex; align-items: center; gap: 10px; }
+.game-sky-step { min-width: var(--tap); min-height: var(--tap); font-size: 20px; font-weight: 700; }
+.game-sky-fov { min-width: 9ch; text-align: center; color: var(--muted); font-size: 13px; }
+.game-sky-colour { display: grid; gap: 4px; font-weight: 600; font-size: 13.5px; }
+.game-sky-colour[hidden] { display: none; }
+.game-sky-colour select { min-height: var(--tap); }
+.game-sky-view { position: absolute !important; inset: 0; width: 100%; height: 100%; }
+.game-sky-status { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 16px; text-align: center; }
+.game-sky-controls { display: grid; gap: 10px; }
+.game-sky-controls .note { margin: 0; }
+.game-sky-zooms { display: flex; flex-wrap: wrap; gap: 6px; }
+.game-sky-zooms button { min-height: var(--tap); }
+.game-sky-band { display: grid; gap: 4px; font-weight: 600; font-size: 13.5px; }
+.game-sky-band[hidden] { display: none; }
+.game-sky-band input { width: 100%; min-height: var(--tap); accent-color: var(--accent); }
+.game-sky-band output { color: var(--accent); }
+.game-sky-band-ends { display: flex; justify-content: space-between; color: var(--muted); font-weight: 400; font-size: 12px; }
+@media (max-width: 900px) {
+  .game-sky { padding: 12px; }
+  .game-sky-body { grid-template-columns: minmax(0, 1fr); }
+}

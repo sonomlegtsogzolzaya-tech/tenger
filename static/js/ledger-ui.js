@@ -2,7 +2,8 @@
 // See-only targets, built only from the trial files Session A publishes (DATA-CONTRACT V1 §6–10 and V5).
 // Until real trial files exist, main.js hands this page the labelled development fixtures instead.
 import { covarianceEllipse } from './coords.js';
-import { $, chip, dataTable, details, el, formatNumber } from './dom.js';
+import { $, chip, dataTable, details, downloadLine, el, formatNumber } from './dom.js';
+import { TRIAL_FILES, trialFilePath } from './method.js';
 import { has, t, tData } from './i18n.js';
 import { categoryLabel, categoryNote, categoryTerm, exampleChip } from './labels.js';
 import { asteroidLines, checkLines, itemName, itemSentence, storyChipKey, storyModel, untestedLine } from './predict-story.js';
@@ -11,7 +12,7 @@ import {
   trialLabels, trialStatus,
 } from './ledger.js';
 import { dateOfMjd, labelChips, receiptLine, residualTable, statusChip, utcText } from './ledger-parts.js';
-import { closeReveal, initReveal, openReveal, revealTrialId } from './reveal.js';
+import { closeReveal, goToStep, initReveal, openReveal, revealTrialId } from './reveal.js';
 import { forecastRows, HINDCAST_PATH, POSTMORTEM_PATH, readHindcast, readPostmortem } from './postmortem.js';
 import { whyWeMissed } from './postmortem-ui.js';
 import { batchSection } from './batch-ui.js';
@@ -25,6 +26,7 @@ let context = null;
 /** The loaded ledger: { boardDoc, cards, forecasts, seeOnly, bundles } (a promise until it resolves). */
 let ledger = null;
 let pendingTrial = null;
+let pendingStep = null;
 
 function svg(name, attributes = {}, text) {
   const node = document.createElementNS(SVG_NS, name);
@@ -249,6 +251,7 @@ function trialCard(card) {
         position, limit: Number.isFinite(threshold) ? Math.sqrt(threshold) : null, unit: verification.observed?.unit ?? '',
       }) : null,
       verification ? el('p', { class: 'note', text: t('ledger.checkedOn', { utc: utcText(verification.revealed_utc) }) }) : null,
+      trialDownloads(bundle, nameOf(trial.target_key)),
     ]),
     verification ? whyFor(bundle.id) : null,
     ...warnings.map((text) => el('p', { class: 'panel-note warn', text })),
@@ -267,6 +270,14 @@ function trialCard(card) {
 
 const okDoc = (result) => (result?.state === 'ok' ? result.doc : null);
 const bundleById = (data, id) => data.bundles.find((item) => item.id === id) ?? data.batch?.bundles?.find((item) => item?.id === id) ?? null;
+/** "Download the data (JSON)" (task B30): the trial's published files that loaded, as they are on the server. */
+function trialDownloads(bundle, name) {
+  if (!bundle?.id) return null;
+  const files = TRIAL_FILES.filter((file) => bundle[file]?.state === 'ok').map((file) => ({
+    href: context.source.url(trialFilePath(bundle.id, file)), file: `${file}.json`, saveAs: `${bundle.id}-${file}.json`,
+  }));
+  return downloadLine(files, name);
+}
 const boardRow = (data, id) => (Array.isArray(data.boardDoc?.rows) ? data.boardDoc.rows.find((row) => row?.trial_id === id) ?? null : null);
 
 /** Everything a story card used to show at a glance, now under its closed "Details". */
@@ -281,7 +292,7 @@ function storyDetails(entry, bundle, data) {
     entry.pending ? el('p', { class: 'note', text: t('story.pendingNote') }) : null,
   ];
   if (entry.kind === 'asteroid') {
-    return [...parts, bundle ? receiptLine(bundle.receipt) : null, el('p', { class: 'note', text: t('story.asteroidMore') })];
+    return [...parts, bundle ? receiptLine(bundle.receipt) : null, el('p', { class: 'note', text: t('story.asteroidMore') }), trialDownloads(bundle, itemName(entry, nameOf))];
   }
   if (!trial) return parts;
   const prediction = okDoc(bundle.prediction);
@@ -301,6 +312,7 @@ function storyDetails(entry, bundle, data) {
     }) : null,
     verification ? el('p', { class: 'note', text: t('ledger.checkedOn', { utc: utcText(verification.revealed_utc) }) }) : null,
     status.conflict ? el('p', { class: 'panel-note warn', text: t('ledger.conflict', { board: row.status, file: status.status }) }) : null,
+    trialDownloads(bundle, itemName(entry, nameOf)),
   ];
 }
 
@@ -596,14 +608,16 @@ export async function showLedger() {
   const data = await ledger;
   if (pendingTrial) {
     const id = pendingTrial;
+    const step = pendingStep;
     pendingTrial = null;
-    showReveal(id, { push: false });
+    pendingStep = null;
+    showReveal(id, { push: false, step });
   }
   return data;
 }
 
 /** Opens the reveal of a trial (after the ledger has loaded). */
-export async function showReveal(id, { push = true } = {}) {
+export async function showReveal(id, { push = true, step = null } = {}) {
   const data = await ledger;
   const bundle = data ? bundleById(data, id) : null;
   if (!bundle || !revealModel(bundle)) {
@@ -611,18 +625,23 @@ export async function showReveal(id, { push = true } = {}) {
     return;
   }
   await openReveal(bundle, { example: Boolean(context.fallback || context.fixtures) });
+  // ?step=N (task B30): open at that step, as if Next had been pressed N−1 times.
+  if (Number.isInteger(step) && step > 1) goToStep(step - 1, { animate: false });
   context.onChange?.({ push });
 }
 
-/** The URL asked for ?trial=<id>: open it once the page has loaded, or close an open reveal. */
-export function syncRevealFromUrl(id) {
+/** The URL asked for ?trial=<id> (and maybe ?step=N): open it once the page has loaded, or close an open reveal. */
+export function syncRevealFromUrl(id, step = null) {
   if (!id) {
     if (revealTrialId()) closeReveal({ notify: false });
     return;
   }
   if (revealTrialId() === id) return;
-  if (ledger) showReveal(id, { push: false });
-  else pendingTrial = id;
+  if (ledger) showReveal(id, { push: false, step });
+  else {
+    pendingTrial = id;
+    pendingStep = step;
+  }
 }
 
 export const currentReveal = () => revealTrialId();

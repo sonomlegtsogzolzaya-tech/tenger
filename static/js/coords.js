@@ -94,6 +94,16 @@ export function tangentOffsetArcsec(ra0, dec0, ra, dec) {
   };
 }
 
+/** The inverse: the sky position (degrees) at east/north offsets (arcsec) on the tangent plane at (ra0, dec0). */
+export function tangentToSky(ra0, dec0, east, north) {
+  const xi = east / ARCSEC_PER_RAD;
+  const eta = north / ARCSEC_PER_RAD;
+  const d0 = dec0 * DEG;
+  const across = Math.cos(d0) - eta * Math.sin(d0);
+  const ra = ra0 + Math.atan2(xi, across) / DEG;
+  return { ra: ((ra % 360) + 360) % 360, dec: Math.atan2(Math.sin(d0) + eta * Math.cos(d0), Math.hypot(xi, across)) / DEG };
+}
+
 export function addCovariance(first, second) {
   return [
     [first[0][0] + second[0][0], first[0][1] + second[0][1]],

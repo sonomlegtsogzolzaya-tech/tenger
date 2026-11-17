@@ -1,0 +1,28 @@
+/* Task B34: "Path through time (3D)" in What changed. A separate file so Session B's Home work in style.css stays
+   apart. The label layer sits on top of the canvas and takes the drag (OrbitControls); labels themselves take none. */
+.path3d-host { margin: var(--s2) 0; }
+.path3d { padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.path3d > summary { min-height: var(--tap); display: flex; align-items: center; font: 600 15px/1.3 var(--font-head); cursor: pointer; }
+.path3d-body { display: grid; gap: var(--s1); min-width: 0; }
+.path3d-caption { margin: 0; color: var(--muted); font-size: 13.5px; }
+.path3d-stage { position: relative; width: 100%; min-height: 260px; border-radius: var(--radius-sm); background: rgba(5, 7, 13, 0.7); overflow: hidden; touch-action: none; }
+.path3d-stage canvas { display: block; }
+.path3d-labels { position: absolute; inset: 0; cursor: grab; }
+.path3d-labels:active { cursor: grabbing; }
+.path3d-label { pointer-events: none; font: 600 11.5px/1.2 var(--font-text); color: var(--text); white-space: nowrap; text-shadow: 0 1px 3px #000; }
+.path3d-label.is-axis { color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.5px; }
+.path3d-label.is-date { font: 600 11px/1.2 var(--font-mono); color: var(--muted); }
+.path3d-label.is-scale { color: var(--star); font-family: var(--font-mono); }
+.path3d-label.is-measured { color: var(--accent); }
+.path3d-label.is-model { color: var(--star); }
+.path3d-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.path3d-switch { display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); font-size: 13.5px; cursor: pointer; }
+.path3d-switch input { width: 18px; height: 18px; accent-color: var(--accent); }
+.path3d-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--muted); }
+.path3d-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.path3d-legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--accent); }
+.path3d-legend .is-measured i { width: 8px; height: 8px; border: 0; border-radius: 50%; background: var(--accent); }
+.path3d-legend .is-model i { border-top-color: var(--star); border-top-width: 1px; }
+.path3d-status:empty { display: none; }
+.path3d-2d { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; color: var(--muted); }
+.path3d-controls[hidden] { display: none; }

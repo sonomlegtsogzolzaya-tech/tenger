@@ -173,6 +173,10 @@ export function createTimeControl({ controller, host, reducedMotion = false }) {
   return {
     /** The speed step (task B25: Home's first screen runs time gently, then gives the visitor's speed back). */
     step: () => clock.step(),
+    /** Whether time is running (false after Pause, and while the tab is hidden or the scene off screen). */
+    moving: () => clock.moving(),
+    /** Task B29: the Auto rotate switch runs or stops the time (a no-op when it already does). */
+    setMoving: (on) => act((at) => { if (clock.moving() !== Boolean(on)) clock.toggle(at); }),
     setStep: (step) => act((at) => clock.setStep(step, at)),
     isLive: () => clock.isLive(Date.now()),
     goLive: () => act((at) => clock.goLive(at)),

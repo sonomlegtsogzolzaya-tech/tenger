@@ -7,10 +7,14 @@ const STATIC_RETRY_MS = 800;
 
 /**
  * Live search needs the TENGER server, which answers on the same origin when the site runs locally
- * (uvicorn backend.api:app). The public site on GitHub Pages is static and has no server, so there the client
- * makes no live request at all and says so (user's decision, 15 Nov 2026). The prepared targets need no server.
+ * (uvicorn backend.api:app). Every public copy is static and has no server (GitHub Pages, the Space Apps link on
+ * Cloudflare Pages at vestigium-82p.pages.dev, any custom domain), so there the client makes no live request at all and
+ * says so: archive-only objects stay out of search, Real sky is not offered and coordinate search explains why
+ * (user's decisions, 15 and 16 Nov 2026). The prepared targets need no server. Fix CF2: the live server is used only on
+ * the local machine's own names; every other host, a LAN address included, behaves like the public site.
  */
-export const liveAvailable = (hostname = globalThis.location?.hostname ?? '') => !String(hostname).endsWith('github.io');
+export const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]', '::1'];
+export const liveAvailable = (hostname = globalThis.location?.hostname ?? '') => LOCAL_HOSTS.includes(String(hostname).toLowerCase());
 
 /** The error a live call gives on the public static site; nothing was requested. */
 export const liveUnavailableError = () => Object.assign(new Error('live-unavailable'), { liveUnavailable: true });

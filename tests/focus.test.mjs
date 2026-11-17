@@ -28,7 +28,7 @@ test('the Sun, all eight planets, Pluto and Makemake can be flown to, in that or
 });
 
 test('the Fly to list is reachable by keyboard and Esc is listed with the 3D shortcuts', () => {
-  assert.match(html, /<details id="space-fly" class="space-fly space-3d-only">\s*<summary data-t="space\.fly"><\/summary>/);
+  assert.match(html, /<details id="space-fly" class="space-fly space-3d-only">\s*<summary class="tool-icon" data-t-label="space\.fly" data-t-title="space\.fly">/);
   assert.match(html, /id="space-fly-list"[^>]*role="group"[^>]*data-t-label="space\.flyLabel"/);
   assert.equal(t('space.fly'), 'Fly to');
   const rows = SHORTCUTS.find(([group]) => group === 'keys.group.time')[1].map(([, action]) => action);

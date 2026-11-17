@@ -1,6 +1,6 @@
-// The public static site (GitHub Pages) has no TENGER server: it must make no live request at all, in particular
-// none to spherex-blink.onrender.com, which the team does not run (user's decision, 15 Nov 2026). Running locally
-// (same-origin uvicorn backend) keeps live search.
+// Every public static copy (GitHub Pages, Cloudflare Pages, a custom domain) has no TENGER server: it must make no live
+// request at all, in particular none to spherex-blink.onrender.com, which the team does not run (user's decisions,
+// 15 and 16 Nov 2026). Running locally (same-origin uvicorn backend on localhost, 127.0.0.1 or [::1]) keeps live search.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -28,24 +28,41 @@ async function onHost(hostname, fn) {
   return requested;
 }
 
-test('on github.io no live call makes any request; each says live search is unavailable', async () => {
-  const requested = await onHost('nama2323.github.io', async () => {
-    assert.equal(api.liveAvailable(), false);
-    for (const call of [() => api.observe(150.1, 2.2, 0.1), () => api.resolveName('M31'), () => api.getGaia(1, 2, 0.1), () => api.jobStatus('x'), () => api.parsePosition('10 20')]) {
-      await assert.rejects(call(), (error) => error.liveUnavailable === true);
-    }
-  });
-  assert.deepEqual(requested, [], 'nothing fetched');
+// Fix CF2 (16 Nov 2026): every public copy behaves like GitHub Pages, including the Space Apps link on Cloudflare Pages
+// (vestigium-82p.pages.dev), any other pages.dev name, a custom domain and a LAN address.
+const PUBLIC_HOSTS = ['nama2323.github.io', 'vestigium-82p.pages.dev', 'cloudflare-mirror.vestigium-82p.pages.dev', 'vestigium.example.org', '192.168.1.20'];
+
+test('on every public host (github.io, pages.dev, a custom domain) no live call makes any request; each says live search is unavailable', async () => {
+  for (const hostname of PUBLIC_HOSTS) {
+    const requested = await onHost(hostname, async () => {
+      assert.equal(api.liveAvailable(), false, hostname);
+      for (const call of [() => api.observe(150.1, 2.2, 0.1), () => api.resolveName('M31'), () => api.getGaia(1, 2, 0.1), () => api.jobStatus('x'), () => api.parsePosition('10 20')]) {
+        await assert.rejects(call(), (error) => error.liveUnavailable === true);
+      }
+    });
+    assert.deepEqual(requested, [], `${hostname}: nothing fetched`);
+  }
 });
 
-test('running locally keeps live search, on this same origin and never on another host', async () => {
-  for (const hostname of ['localhost', '127.0.0.1', '192.168.1.20']) {
+test('running locally (localhost, 127.0.0.1, [::1]) keeps live search, on this same origin and never on another host', async () => {
+  for (const hostname of ['localhost', '127.0.0.1', '[::1]', 'LOCALHOST']) {
     const requested = await onHost(hostname, async () => {
-      assert.equal(api.liveAvailable(), true);
+      assert.equal(api.liveAvailable(), true, hostname);
       await api.observe(150.1, 2.2, 0.1);
     });
     assert.deepEqual(requested, ['/api/observe?ra=150.1&dec=2.2&fov=0.1'], hostname);
   }
+});
+
+test('one rule: no other module tests the page\'s host; they all ask api.liveAvailable()', () => {
+  const offenders = [];
+  for (const entry of readdirSync(`${STATIC}js`)) {
+    if (!entry.endsWith('.js') || entry === 'api.js') continue;
+    const code = readFileSync(`${STATIC}js/${entry}`, 'utf8').split('\n').filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line)).join('\n');
+    if (/location\.(hostname|host|origin)\b[^;]*(github|pages\.dev|localhost|127\.0\.0\.1)|['"`][^'"`]*github\.io['"`]|\.endsWith\(['"`](github|\.pages)/.test(code)) offenders.push(entry);
+  }
+  assert.deepEqual(offenders, []);
+  assert.deepEqual(api.LOCAL_HOSTS, ['localhost', '127.0.0.1', '[::1]', '::1']);
 });
 
 test('no file the site serves names onrender.com; the note says what works', () => {

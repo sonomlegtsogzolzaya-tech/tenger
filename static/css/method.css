@@ -1,0 +1,52 @@
+/* Task B30: "How it works" (?page=method), its links from Predictions, About and the "Can and can't do" dialog,
+   and the "Download the data (JSON)" lines. A separate file so the Home and header work in style.css stays apart. */
+.page-method { max-width: 1180px; margin: 0 auto; }
+.method-badge { margin: 0; }
+.method-badge .chip { white-space: normal; text-align: left; line-height: 1.35; padding: 6px 12px; }
+.method-body { display: grid; gap: var(--s4); min-width: 0; }
+.method-section { display: grid; gap: var(--s2); min-width: 0; }
+.method-section > h2 { margin: 0; }
+.method-line { margin: -8px 0 0; color: var(--muted); max-width: 70ch; }
+.method-sub { margin: var(--s1) 0 0; font-size: 1.05rem; }
+
+/* SPHEREx in one minute: fact tiles. */
+.method-facts { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.method-fact { display: grid; align-content: start; gap: 6px; padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.method-fact .stat-value { margin: 0; font-family: var(--font-head); font-size: 1.35rem; line-height: 1.2; overflow-wrap: anywhere; }
+.method-fact .stat-label { margin: 0; color: var(--muted); }
+.method-source { margin: 2px 0 0; font-size: 13px; overflow-wrap: anywhere; }
+
+/* D1–D6 strip: display colours only. */
+.band-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.band-cell { display: grid; gap: 2px; padding: 10px 6px 8px; border-radius: var(--radius-sm); border-top: 6px solid var(--band-colour); background: rgba(255, 255, 255, 0.03); text-align: center; min-width: 0; }
+.band-name { font-family: var(--font-head); font-weight: 600; }
+.band-range { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .band-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Pipeline steps and cards. */
+.method-steps, .method-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.method-step, .method-card { display: grid; align-content: start; gap: var(--s1); padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.method-step p, .method-card p { margin: 0; }
+.method-step-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.method-step-head h3 { margin: 0; font-size: 1.05rem; flex: 1 1 auto; }
+.method-num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(var(--accent-rgb), 0.16); color: var(--accent); font-family: var(--font-head); font-weight: 600; flex: none; }
+.method-status { font-size: 12.5px; }
+.method-status.is-done { color: var(--hit); border-color: color-mix(in srgb, var(--hit) 55%, transparent); background: color-mix(in srgb, var(--hit) 12%, transparent); }
+.method-status.is-pending { color: var(--miss); border-color: color-mix(in srgb, var(--miss) 55%, transparent); background: color-mix(in srgb, var(--miss) 10%, transparent); }
+.method-status.is-missing { color: var(--muted); }
+.method-go a, .method-link a { font-weight: 600; }
+.method-go { margin: 0; }
+.method-links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; }
+.method-links a, .method-go a { overflow-wrap: anywhere; }
+.method-key { margin: 0; padding: 12px 16px; border-left: 3px solid var(--accent); background: rgba(var(--accent-rgb), 0.06); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; max-width: 70ch; }
+.method-result .stat-tile { padding: 12px 14px; }
+.method-result .stat-value { font-size: 1.6rem; }
+.method-cannot .limits-list { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 70ch; }
+.method-link { margin: 0; }
+.sheet .method-link { margin-top: var(--s2); }
+
+/* "Download the data (JSON): trial.json · prediction.json …" */
+.download-line { margin: var(--s1) 0 0; font-size: 13.5px; color: var(--muted); overflow-wrap: anywhere; }
+.download-line a { font-family: var(--font-mono); font-size: 12.5px; }

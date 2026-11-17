@@ -7,6 +7,7 @@ import {
   checkRound, dateClusters, DIFFICULTY_ORDER, errorUnit, fromOffset, isMagnitude, lastMeasurement, physicsLost, readBest, revealView, roundDifficulty,
   roundKind, roundStars, roundType, saveBest, scalarView, scaleBarArcsec, scoreRound, ticks, toOffset,
 } from './game.js';
+import { gameSkyPanel } from './game-sky.js';
 import { angleText, clusterDate, explainResult, HINT_COUNT, hintBody, hintOverlay, howToBox, timelineStrip, wordDate } from './game-help.js';
 import { has, t } from './i18n.js';
 import { challengeOutcome, challengeUrl, NAME_MAX, readChallenge, starText } from './challenge.js';
@@ -715,6 +716,7 @@ function renderRound() {
         guessInputs(),
       ]),
     ]),
+    position ? gameSkyPanel(round, name) : null,
     details([
       el('p', { class: 'stamps' }, [storyKey ? chip(t(storyKey), `chip-story chip-category-${round.category}`) : null, categoryChip(round.category), prospectiveChip(row)]),
       el('p', { id: 'round-task', class: 'round-task', text: t(position ? 'game.taskPositionShort' : 'game.taskScalarShort', { name, date }) }),

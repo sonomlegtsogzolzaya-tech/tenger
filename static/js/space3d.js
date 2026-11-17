@@ -224,6 +224,9 @@ export function createSpace(host, options) {
   place('sun', new Vector3(), { name: labelOf('sun'), extent: extentOf('sun') });
   label(labelOf('sun'), 'is-sun', new Vector3(0, -1.6, 0), { key: 'sun', kind: 'sun' });
 
+  // Task B29: the layers the Key's switches show and hide (orbits, Kuiper Belt, Planet Nine range; labels are one element).
+  const layers = { orbits: [], kuiper: [], nine: [] };
+
   // ---------- Reference rings for the log scale ----------
   const ringMaterial = new LineBasicMaterial({ color: accent, transparent: true, opacity: 0.12 });
   for (const au of REFERENCE_RINGS_AU) {
@@ -239,6 +242,7 @@ export function createSpace(host, options) {
   for (const planet of PLANETS) {
     const orbitLine = loop(orbitPoints(planet, jd, 256).map(sceneAt), orbitMaterial);
     planetOrbits.push({ planet, line: orbitLine });
+    layers.orbits.push(orbitLine);
     world.add(orbitLine);
     const position = sceneAt(planetPosition(planet, jd));
     const body = ball(SIZE[planet], PLANET_TINT[planet]);
@@ -266,9 +270,10 @@ export function createSpace(host, options) {
   }
 
   // ---------- Kuiper Belt (illustration) ----------
-  world.add(pointCloud(kuiperBelt(BELT_POINTS).map(sceneAt), new PointsMaterial({ color: colours.solar, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.32, depthWrite: false })));
+  const belt = pointCloud(kuiperBelt(BELT_POINTS).map(sceneAt), new PointsMaterial({ color: colours.solar, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.32, depthWrite: false }));
+  world.add(belt);
   const beltLabelRadius = scaledRadius(40);
-  label(labelOf('kuiper'), 'is-note', new Vector3(beltLabelRadius * Math.cos(2.4), 0.8, -beltLabelRadius * Math.sin(2.4)), { kind: 'note' });
+  layers.kuiper.push(belt, label(labelOf('kuiper'), 'is-note', new Vector3(beltLabelRadius * Math.cos(2.4), 0.8, -beltLabelRadius * Math.sin(2.4)), { kind: 'note' }));
 
   // ---------- Pluto and Makemake (scene3d.json) ----------
   // With JPL Small-Body Database elements they move by Kepler's equation; without, they stay at the JPL Horizons
@@ -281,7 +286,9 @@ export function createSpace(host, options) {
     if (!Array.isArray(now) && !elements) continue;
     const orbit = body.catalogue_orbit?.orbit_points_au;
     if (Array.isArray(orbit) && orbit.length > 8) {
-      world.add(loop(orbit.map(sceneAt), new LineBasicMaterial({ color: colours.solar, transparent: true, opacity: 0.55 })));
+      const orbitLoop = loop(orbit.map(sceneAt), new LineBasicMaterial({ color: colours.solar, transparent: true, opacity: 0.55 }));
+      world.add(orbitLoop);
+      layers.orbits.push(orbitLoop);
     }
     const position = sceneAt(elements ? smallBodyPosition(elements, jd) : now);
     const dot = ball(SIZE.dwarf, colours.solar);
@@ -310,6 +317,7 @@ export function createSpace(host, options) {
     ring.rotation.x = -Math.PI / 2;
     world.add(ring);
     nineRings.push(ring);
+    layers.nine.push(ring);
   }
   const ninePlace = scaledRadius(ranges.length ? Math.max(...ranges.map((range) => range.high)) : 500);
   const cited = ranges.map((range) => labelOf('planetNineRange', { low: String(range.low), high: String(range.high), reference: range.reference })).join('; ');
@@ -317,6 +325,7 @@ export function createSpace(host, options) {
   const nineTag = label(labelOf('nineShort'), 'is-hypothetical', new Vector3(ninePlace * Math.cos(3.6), 0, -ninePlace * Math.sin(3.6)), {
     kind: 'hypothetical', onClick: () => options.onNine?.('click'),
   });
+  layers.nine.push(nineTag);
   nineTag.element.addEventListener('pointerenter', () => options.onNine?.('enter'));
   nineTag.element.addEventListener('pointerleave', () => options.onNine?.('leave'));
 
@@ -466,6 +475,7 @@ export function createSpace(host, options) {
     arrangeLabels();
   }
 
+  let lastTick = null;
   function tick(now) {
     frame = 0;
     if (!alive) return;
@@ -501,7 +511,10 @@ export function createSpace(host, options) {
         again = true;
       }
     }
-    again = controls.update() || again;
+    // The slow turn is timed in seconds (task B29), so it is the same on a 60 Hz and a 120 Hz screen.
+    const delta = lastTick === null ? null : Math.min(0.1, Math.max(0, (now - lastTick) / 1000));
+    lastTick = now;
+    again = controls.update(delta) || again;
     render();
     if (again || judging) requestRender();
   }
@@ -556,12 +569,13 @@ export function createSpace(host, options) {
     // In the phone layout the page scrolls past the scene: a vertical swipe scrolls, a sideways drag turns, a pinch zooms.
     renderer.domElement.style.touchAction = matchMedia('(max-width: 900px)').matches ? 'pan-y' : 'none';
     camera.aspect = width / height;
-    const left = Math.min(options.insetLeft?.() ?? 0, width * 0.6);
-    if (left > 0) camera.setViewOffset(width, height, -left / 2, 0, width, height);
+    // A positive inset is covered on the left, a negative one on the right (task B29: the Famous targets rail).
+    const inset = Math.max(-width * 0.6, Math.min(options.insetLeft?.() ?? 0, width * 0.6));
+    if (inset !== 0) camera.setViewOffset(width, height, -inset / 2, 0, width, height);
     else camera.clearViewOffset();
     camera.updateProjectionMatrix();
     // From any target the visitor may zoom out until the whole scene, star shell included, fits the free area.
-    controls.maxDistance = sceneFitDistance({ aspect: (width - left) / height, fovDeg: FOV_DEG });
+    controls.maxDistance = sceneFitDistance({ aspect: (width - Math.abs(inset)) / height, fovDeg: FOV_DEG });
     blocked = null;
     for (const item of labelItems) item.size = null;
     requestRender();
@@ -605,7 +619,7 @@ export function createSpace(host, options) {
     return pickOnScreen(candidates, at, minRadius);
   }
   function onNineRing(event) {
-    if (!nineRings.length) return false;
+    if (!nineRings.length || !nineRings[0].visible) return false;
     const at = local(event);
     pointer.set((at.x / size.width) * 2 - 1, -(at.y / size.height) * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
@@ -619,7 +633,11 @@ export function createSpace(host, options) {
     downAt = null;
     const key = bodyAt(event);
     if (key) choose(key);
-    else options.onNine?.(onNineRing(event) ? 'click' : 'away');
+    else if (onNineRing(event)) options.onNine?.('click');
+    else {
+      options.onNine?.('away');
+      options.onEmpty?.(); // task B29: empty space closes a target's popup
+    }
   });
   renderer.domElement.addEventListener('pointermove', (event) => {
     if (event.buttons) return;
@@ -690,6 +708,34 @@ export function createSpace(host, options) {
       controls.autoRotate = Boolean(on && rotate);
       controls.autoRotateSpeed = 0.35;
       controls.enableZoom = !on;
+      requestRender();
+    },
+    /** Task B29: Home's slow turn (speed 0.5 is one turn in about two minutes); the wheel always zooms. */
+    autoTurn(on, speed = 0.5) {
+      controls.autoRotate = Boolean(on);
+      controls.autoRotateSpeed = speed;
+      controls.enableZoom = true;
+      requestRender();
+    },
+    /** Task B29: the Key's layer switches: 'orbits', 'labels', 'kuiper' or 'nine', shown or hidden at once. */
+    setLayer(name, on) {
+      if (name === 'labels') labels.domElement.style.visibility = on ? '' : 'hidden';
+      for (const object of layers[name] ?? []) object.visible = Boolean(on);
+      blocked = null;
+      requestRender();
+    },
+    /** Task B29: the type filter; targets outside `keys` (a Set, or null for all) are dimmed, those inside stand out. */
+    dimExcept(keys, targets) {
+      for (const item of labelItems) {
+        if (!item.key || !targets.has(item.key)) continue;
+        item.object.element.classList.toggle('is-dimmed', Boolean(keys) && !keys.has(item.key));
+        item.object.element.classList.toggle('is-match', Boolean(keys) && keys.has(item.key));
+      }
+      requestRender();
+    },
+    /** Task B29: the chosen Famous target's label stands out (null clears it). */
+    highlight(key) {
+      for (const item of labelItems) item.object.element.classList.toggle('is-selected', Boolean(key) && item.key === key);
       requestRender();
     },
     has: (key) => places.has(key),

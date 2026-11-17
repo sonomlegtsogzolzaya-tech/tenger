@@ -6,6 +6,11 @@
   <title>Vestigium</title>
   <meta name="description" content="See real changes in the infrared sky. Make a prediction. Check it against NASA SPHEREx observations.">
   <meta name="theme-color" content="#05070d">
+  <!-- Task B32: one build version for every module, stylesheet and data file, written at deploy time by
+       .github/scripts/stamp-build.mjs (the commit; "dev" here). The import map sends each module import to
+       <file>?v=<build>, so a new deploy never runs old cached modules. -->
+  <meta name="build" content="dev">
+  <script type="importmap" id="build-map">{"imports":{"./js/api.js":"./js/api.js?v=dev","./js/batch-ui.js":"./js/batch-ui.js?v=dev","./js/batch.js":"./js/batch.js?v=dev","./js/caption.js":"./js/caption.js?v=dev","./js/challenge.js":"./js/challenge.js?v=dev","./js/chart.js":"./js/chart.js?v=dev","./js/contract.js":"./js/contract.js?v=dev","./js/coords.js":"./js/coords.js?v=dev","./js/describe.js":"./js/describe.js?v=dev","./js/dom.js":"./js/dom.js?v=dev","./js/early.js":"./js/early.js?v=dev","./js/epochs.js":"./js/epochs.js?v=dev","./js/focus-ui.js":"./js/focus-ui.js?v=dev","./js/focus.js":"./js/focus.js?v=dev","./js/game-help.js":"./js/game-help.js?v=dev","./js/game-sky.js":"./js/game-sky.js?v=dev","./js/game-ui.js":"./js/game-ui.js?v=dev","./js/game.js":"./js/game.js?v=dev","./js/help.js":"./js/help.js?v=dev","./js/home.js":"./js/home.js?v=dev","./js/i18n.js":"./js/i18n.js?v=dev","./js/labels.js":"./js/labels.js?v=dev","./js/learn-ui.js":"./js/learn-ui.js?v=dev","./js/ledger-parts.js":"./js/ledger-parts.js?v=dev","./js/ledger-ui.js":"./js/ledger-ui.js?v=dev","./js/ledger.js":"./js/ledger.js?v=dev","./js/lessons.js":"./js/lessons.js?v=dev","./js/limits.js":"./js/limits.js?v=dev","./js/loop-ui.js":"./js/loop-ui.js?v=dev","./js/loop.js":"./js/loop.js?v=dev","./js/loop3d.js":"./js/loop3d.js?v=dev","./js/main.js":"./js/main.js?v=dev","./js/map.js":"./js/map.js?v=dev","./js/method-ui.js":"./js/method-ui.js?v=dev","./js/method.js":"./js/method.js?v=dev","./js/names.js":"./js/names.js?v=dev","./js/orbits.js":"./js/orbits.js?v=dev","./js/pages.js":"./js/pages.js?v=dev","./js/panels.js":"./js/panels.js?v=dev","./js/path3d-ui.js":"./js/path3d-ui.js?v=dev","./js/path3d.js":"./js/path3d.js?v=dev","./js/planetx-ui.js":"./js/planetx-ui.js?v=dev","./js/planetx.js":"./js/planetx.js?v=dev","./js/plate.js":"./js/plate.js?v=dev","./js/postmortem-ui.js":"./js/postmortem-ui.js?v=dev","./js/postmortem.js":"./js/postmortem.js?v=dev","./js/predict-story.js":"./js/predict-story.js?v=dev","./js/reserved.js":"./js/reserved.js?v=dev","./js/reveal.js":"./js/reveal.js?v=dev","./js/route.js":"./js/route.js?v=dev","./js/science.js":"./js/science.js?v=dev","./js/sky.js":"./js/sky.js?v=dev","./js/skymap.js":"./js/skymap.js?v=dev","./js/space-ui.js":"./js/space-ui.js?v=dev","./js/space3d.js":"./js/space3d.js?v=dev","./js/stack.js":"./js/stack.js?v=dev","./js/targets.js":"./js/targets.js?v=dev","./js/time-ui.js":"./js/time-ui.js?v=dev","./js/time.js":"./js/time.js?v=dev","./js/tour.js":"./js/tour.js?v=dev","./js/viewport.js":"./js/viewport.js?v=dev","./vendor/three/three-tenger.min.js":"./vendor/three/three-tenger.min.js?v=dev"}}</script>
   <!-- Link previews. Crawlers do not run scripts, so these few words cannot come from js/i18n.js.
        og.png is a screenshot of this site (Barnard's Star: AllWISE 2010 next to SPHEREx 2026).
        Absolute addresses: the public site is https://nama2323.github.io/tenger/ (repository public, 15 Nov 2026). -->
@@ -29,7 +34,10 @@
   <link rel="manifest" href="site.webmanifest">
   <link rel="preload" href="fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=tenger-h1">
+  <link rel="stylesheet" href="css/style.css?v=dev">
+  <link rel="stylesheet" href="css/method.css?v=dev">
+  <link rel="stylesheet" href="css/colour-step.css?v=dev">
+  <link rel="stylesheet" href="css/path3d.css?v=dev">
 </head>
 <body data-page="home">
   <a class="skip" href="#main" data-t="site.skip"></a>
@@ -43,6 +51,8 @@
     <nav id="site-nav" class="nav" data-t-label="nav.label">
       <button type="button" data-page-link="home" data-t="nav.home"></button>
       <button type="button" data-page-link="predictions" data-t="nav.predictions"></button>
+      <!-- Task B29f: Session A's "How it works" page (B30), between Predictions and Planet X. -->
+      <button type="button" data-page-link="method" data-t="nav.method"></button>
       <button id="nav-planetx" type="button" class="nav-planetx"><span data-t="nav.planetx"></span><span class="new-dot" aria-hidden="true"></span><span class="sr-only" data-t="chip.new"></span></button>
       <button type="button" data-page-link="game" data-t="nav.game"></button>
       <button type="button" data-page-link="learn" data-t="nav.learn"></button>
@@ -58,6 +68,24 @@
         </div>
       </details>
     </nav>
+    <!-- Search (task B29): a small icon in the header; the box opens under it. -->
+    <details id="head-search" class="head-search">
+      <summary class="icon-button" data-t-label="search.open" data-t-title="search.open"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg></summary>
+      <div class="head-search-pop glass">
+        <form id="search" class="search hero-search" aria-labelledby="search-title">
+          <h2 id="search-title" class="sr-only" data-t="search.title"></h2>
+          <div class="search-line">
+            <label class="sr-only" for="search-input" data-t="searchLabel"></label>
+            <input id="search-input" type="text" autocomplete="off" spellcheck="false" aria-describedby="search-help search-message" data-t-placeholder="searchPlaceholder">
+            <button type="submit" class="quiet" data-t="search.go"></button>
+          </div>
+          <!-- How to search: read out with the search box, shown at the top of the place list, and in the "?" dialog. -->
+          <p id="search-help" class="hint search-tip" data-t="search.help"></p>
+          <div id="search-list" class="search-list" hidden></div>
+          <p id="search-message" class="form-message" aria-live="polite"></p>
+        </form>
+      </div>
+    </details>
     <button id="shortcuts-open" type="button" class="icon-button" data-dialog="shortcuts" aria-haspopup="dialog" data-t="keys.symbol" data-t-label="keys.button"></button>
   </header>
 
@@ -81,44 +109,25 @@
     <div id="notices" class="notices" aria-live="polite"></div>
     <!-- ======================= Home / Investigate ======================= -->
     <section id="page-home" class="page page-home" data-loading aria-labelledby="home-title">
-      <!-- First screen (task B16): what the site is, one way in (Barnard's Star blinking), then the targets and a
-           small search. The 3D map is below it. -->
-      <div id="home-hero" class="home-hero">
-        <div class="hero-inner">
-          <h1 id="home-title" class="hero-title" tabindex="-1" data-t="hero.title"></h1>
-          <p class="hero-line" data-t="hero.line"></p>
-          <p class="hero-small" data-t="hero.small"></p>
-          <a id="hero-watch" class="hero-watch" href="?target=barnard" data-t="hero.watch"></a>
-          <!-- The Planet X Lab's answer (numbers filled in from depth.json); the whole card is one link to the Lab. -->
-          <a id="hero-planetx" class="hero-planetx" href="?page=learn&amp;lesson=lab">
-            <span class="chip chip-new" data-t="chip.new"></span>
-            <strong class="hero-planetx-title" data-t="hero.planetxTitle"></strong>
-            <span id="hero-planetx-line" class="hero-planetx-line"></span>
-          </a>
-          <p class="hero-links"><a href="?page=game" data-page-link="game" data-t="hero.game"></a><a href="?page=predictions" data-page-link="predictions" data-t="hero.predictions"></a></p>
-          <!-- Phones (task B25): the scene behind this text opens full screen, with the time control and Fly to. -->
-          <button id="hero-explore" type="button" class="hero-explore" data-t="hero.explore" hidden></button>
-          <section class="hero-pick shortcuts" aria-labelledby="shortcuts-title">
-            <h2 id="shortcuts-title" class="eyebrow" data-t="hero.pick"></h2>
-            <ul id="shortcut-list" class="chips"></ul>
-          </section>
-          <form id="search" class="search hero-search" aria-labelledby="search-title">
-            <h2 id="search-title" class="sr-only" data-t="search.title"></h2>
-            <div class="search-line">
-              <label class="sr-only" for="search-input" data-t="searchLabel"></label>
-              <input id="search-input" type="text" autocomplete="off" spellcheck="false" aria-describedby="search-help search-message" data-t-placeholder="searchPlaceholder">
-              <button type="submit" class="quiet" data-t="search.go"></button>
-            </div>
-            <!-- How to search: read out with the search box, shown at the top of the place list, and in the "?" dialog. -->
-            <p id="search-help" class="hint search-tip" data-t="search.help"></p>
-            <div id="search-list" class="search-list" hidden></div>
-            <p id="search-message" class="form-message" aria-live="polite"></p>
-          </form>
-        </div>
-        <a class="hero-down" href="#home-map" data-t-label="hero.toMap"><span aria-hidden="true"></span></a>
-      </div>
-
       <div id="home-map" class="home-stage">
+        <!-- Task B29: Home is the Solar System. A compact title block lies over its top-left corner. -->
+        <div id="home-hero" class="home-hero">
+          <h1 id="home-title" class="hero-title" tabindex="-1" data-t="hero.title"></h1>
+          <p class="hero-line" data-t="hero.lineShort"></p>
+          <a id="hero-watch" class="hero-watch" href="?target=barnard" data-t="hero.watch"></a>
+          <!-- The Planet X Lab, as a small chip; its measured answer (from depth.json) is the chip's tooltip and read-out. -->
+          <!-- Task B40: the game, one click from Home. -->
+          <a id="hero-game" class="hero-game" href="?page=game" data-page-link="game" data-t="hero.playGame"></a>
+          <a id="hero-planetx" class="hero-planetx" href="?page=learn&amp;lesson=lab">
+            <span class="hero-planetx-new" data-t="chip.newColon"></span> <span data-t="hero.planetxChip"></span>
+            <span id="hero-planetx-line" class="sr-only"></span>
+          </a>
+          <!-- Phones: the scene behind opens full screen, with the time control and Fly to. -->
+          <div class="hero-actions">
+            <button id="hero-explore" type="button" class="hero-explore" data-t="hero.explore" hidden></button>
+            <button id="skymap-open-phone" type="button" class="hero-skymap" data-t="skymap.title"></button>
+          </div>
+        </div>
         <div class="scene">
           <div class="map-stage">
             <div id="map-canvas" class="map-canvas" role="group" data-t-label="map.label" hidden></div>
@@ -126,21 +135,25 @@
           </div>
           <!-- 3D view (three.js), loaded after the page is usable; the 2D map above is its fallback. -->
           <div id="space3d" class="space3d" hidden></div>
-          <div id="space-tools" class="space-tools" role="group" data-t-label="space.label" hidden>
-            <button id="space-reset" type="button" class="quiet space-3d-only" data-t="space.reset"></button>
-            <button id="space-top" type="button" class="quiet space-3d-only" data-t="space.top"></button>
+          <div id="space-tools" class="space-tools" role="toolbar" data-t-label="space.label" hidden>
+            <button id="space-reset" type="button" class="quiet tool-icon space-3d-only" data-t-label="space.reset" data-t-title="space.reset"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg></button>
+            <button id="space-top" type="button" class="quiet tool-icon space-3d-only" data-t-label="space.top" data-t-title="space.top"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="9" ry="9"/><ellipse cx="12" cy="12" rx="4.5" ry="4.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg></button>
             <!-- Fly to (task B11): the camera flies to a body and follows it while time runs; Esc or Reset view returns. -->
             <details id="space-fly" class="space-fly space-3d-only">
-              <summary data-t="space.fly"></summary>
+              <summary class="tool-icon" data-t-label="space.fly" data-t-title="space.fly"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11 21 3l-8 18-2-8-8-2Z"/></svg></summary>
               <div id="space-fly-list" class="space-fly-list glass" role="group" data-t-label="space.flyLabel"></div>
             </details>
-            <button id="space-toggle" type="button" class="quiet"></button>
+            <button id="space-toggle" type="button" class="quiet tool-icon tool-text"></button>
+            <!-- Task B36: the all-sky map (Aladin Lite with IRSA's SPHEREx survey), loaded only when opened. -->
+            <button id="skymap-open" type="button" class="quiet tool-icon" data-t-label="skymap.open" data-t-title="skymap.open"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="6"/><path d="M12 6v12M5 9.5l14 5M5 14.5l14-5"/></svg></button>
             <button id="space-close" type="button" class="quiet space-close" data-t="hero.closeExplore"></button>
           </div>
           <!-- Time control for the 3D view (task B10); shown once the 3D scene runs. -->
           <div id="space-time" class="space-time glass space-3d-only" role="group" data-t-label="time.label" hidden>
             <button id="time-live" type="button" class="time-live" aria-pressed="false" data-t-label="time.liveLabel"><i aria-hidden="true"></i><span data-t="time.live"></span></button>
-            <button id="time-play" type="button" class="time-play quiet" data-state="playing"><span aria-hidden="true"></span></button>
+            <button id="time-play" type="button" class="time-play quiet" data-state="playing" hidden><span aria-hidden="true"></span></button>
+            <!-- Task B29: one switch for Home's motion: the camera's slow turn and the running time together. -->
+            <button id="auto-rotate" type="button" role="switch" aria-checked="true" class="switch auto-switch"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span data-t="auto.label"></span></button>
             <p class="time-now" data-t-label="time.dateLabel"><span id="time-date" class="time-date"></span> <span class="time-utc" data-t="time.utc"></span></p>
             <div class="time-speed">
               <input id="time-rate" type="range" min="-7" max="7" step="1" value="1" data-t-label="time.rateLabel">
@@ -148,15 +161,19 @@
             </div>
             <p id="time-note" class="time-note" role="status" hidden></p>
           </div>
-          <div id="space-hud" class="space-hud space-3d-only">
-            <p id="space-date"></p>
-            <p id="space-target" aria-live="polite"></p>
-          </div>
+          <!-- Task B29: a hint over the scene; it fades after the first interaction and returns on reload. -->
+          <p id="space-hint" class="space-hint" hidden></p>
           <!-- The honesty label stays on screen as a chip; the full sentence is under "About this map" in the colour key. -->
           <p class="map-caption glass map-2d-only" data-t="map.captionShort"></p>
           <p class="map-caption glass space-3d-only" data-t="space.captionShort"></p>
           <details id="map-key" class="map-key glass">
-            <summary data-t="map.legend"></summary>
+            <summary data-t="map.keyButton" data-t-title="map.legend"></summary>
+            <!-- Task B29: the "Planets on … (JPL approximate elements)" line and the camera's target, inside the Key. -->
+            <div id="space-hud" class="space-hud space-3d-only">
+              <p id="space-date"></p>
+              <p id="space-target" aria-live="polite"></p>
+            </div>
+            <p class="note key-line" data-t="key.notToScale"></p>
             <ul id="map-legend" class="legend" hidden>
               <li class="colour-star"><i class="dot" aria-hidden="true"></i><span data-t="map.legend.star"></span></li>
               <li class="colour-variable"><i class="dot" aria-hidden="true"></i><span data-t="map.legend.variable"></span></li>
@@ -168,6 +185,13 @@
               <p id="space-nine-text"></p>
               <p class="note" data-t="space.nineHint"></p>
             </div>
+            <div id="key-layers" class="key-layers space-3d-only" role="group" aria-labelledby="key-layers-title">
+              <p id="key-layers-title" class="eyebrow" data-t="layers.title"></p>
+              <button type="button" role="switch" aria-checked="true" class="switch" data-layer="orbits"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span data-t="layers.orbits"></span></button>
+              <button type="button" role="switch" aria-checked="true" class="switch" data-layer="labels"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span data-t="layers.labels"></span></button>
+              <button type="button" role="switch" aria-checked="true" class="switch" data-layer="kuiper"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span data-t="layers.kuiper"></span></button>
+              <button type="button" role="switch" aria-checked="true" class="switch" data-layer="nine"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span data-t="layers.nine"></span></button>
+            </div>
             <details id="map-about" class="more-info map-about">
               <summary data-t="map.about"></summary>
               <p class="note map-2d-only" data-t="map.caption"></p>
@@ -176,22 +200,32 @@
               <p id="space-key-note" class="note space-3d-only"></p>
               <div id="map-notes" class="note map-2d-only"></div>
               <p id="space-note" class="note" hidden></p>
+              <p class="note" data-t="footer.credit"></p>
             </details>
           </details>
         </div>
 
-        <div class="console-left">
-        <aside id="rail" class="rail glass" aria-labelledby="rail-title">
-          <button id="rail-toggle" class="rail-toggle" type="button" aria-expanded="true" aria-controls="rail-body">
-            <span id="rail-title" data-t="rail.title"></span>
-            <span id="rail-count" class="rail-count"></span>
-          </button>
-          <div id="rail-body" class="rail-body">
-            <p class="note" data-t="feed.lead"></p>
-            <div id="feed-list" class="rail-groups"></div>
-            <p class="rail-credit" data-t="footer.credit"></p>
+        <!-- Famous targets (task B29): always visible; a card flies the camera there and opens a small popup. -->
+        <section id="famous" class="famous" aria-labelledby="famous-title">
+          <h2 id="famous-title" class="famous-title" data-t="famous.title"></h2>
+          <div id="famous-filters" class="famous-filters" role="group" data-t-label="filter.label"></div>
+          <p id="famous-filter-status" class="sr-only" aria-live="polite"></p>
+          <ul id="famous-list" class="famous-list"></ul>
+          <!-- The Space Apps line (B30) on every page: here under the targets, since Home has no footer. -->
+          <p class="famous-foot" data-t="footer.spaceApps"></p>
+        </section>
+        <div id="target-pop" class="target-pop glass" role="dialog" aria-labelledby="pop-name" hidden>
+          <button id="pop-close" type="button" class="quiet pop-close" data-t-label="famous.close" data-t-title="famous.close"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          <div class="pop-head">
+            <span id="pop-thumb" class="pop-thumb" aria-hidden="true"></span>
+            <div>
+              <h3 id="pop-name"></h3>
+              <p id="pop-line" class="pop-line"></p>
+            </div>
           </div>
-        </aside>
+          <p id="pop-status" class="note pop-status"></p>
+          <button id="pop-see" type="button" class="primary pop-see" data-t="famous.see"></button>
+          <button id="pop-play" type="button" class="quiet pop-play" data-t="play.guess" hidden></button>
         </div>
 
         <section id="sky-panel" class="sky-panel glass" hidden aria-labelledby="sky-title">
@@ -205,8 +239,29 @@
           <p class="note" data-t="sky.credit"></p>
         </section>
       </div>
-      <!-- Wide screens (task B25): the scroll room that lets the first screen's text slide off the 3D scene. -->
-      <div class="home-spacer" aria-hidden="true"></div>
+      <!-- Task B35: more prepared objects (pictures only, no forecast), grouped as in search. On wide screens main.js
+           moves this section into the Famous targets rail; on phones it sits below the first screen. -->
+      <section id="explore-more" class="explore-more" aria-labelledby="explore-title">
+        <h2 id="explore-title" class="famous-title" data-t="explore.title"></h2>
+        <div id="explore-groups" class="explore-groups"></div>
+      </section>
+    </section>
+
+    <!-- Task B36: the all-sky Sky map over Home (Close returns). -->
+    <section id="skymap" class="skymap" hidden aria-labelledby="skymap-title">
+      <div class="skymap-bar">
+        <h2 id="skymap-title" data-t="skymap.title"></h2>
+        <p id="skymap-source" class="chip skymap-chip"></p>
+        <p class="chip skymap-chip" data-t="skymap.linesNote"></p>
+        <button id="skymap-lines" type="button" role="switch" aria-checked="true" class="switch"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span data-t="skymap.lines"></span></button>
+        <button id="skymap-close" type="button" class="quiet skymap-close" data-t="skymap.close"></button>
+      </div>
+      <p id="skymap-status" class="note skymap-status" role="status"></p>
+      <div id="skymap-fly" class="skymap-fly" role="group" data-t-label="skymap.flyLabel"></div>
+      <div id="skymap-view" class="skymap-view"></div>
+      <p id="skymap-note" class="skymap-note glass" role="status" hidden></p>
+      <!-- Task B40: like a planetarium: where the view points, and Fly to chips. -->
+      <p id="skymap-readout" class="skymap-readout mono" aria-live="off"></p>
     </section>
 
     <!-- ======================= Investigation ======================= -->
@@ -283,6 +338,21 @@
               <label for="contrast" data-t="toolContrast"></label>
               <input id="contrast" type="range" min="0.4" max="4" step="0.1" value="1">
               <button id="contrast-reset" type="button" class="contrast-reset" data-t="contrast.reset"></button>
+            </div>
+            <!-- Colour (task B31): All or one detector array, display only, the same stretch for every date. Uses the
+                 existing per-array images and the URL band value; off where a picture has only one colour. -->
+            <div id="colour-step-control" class="colour-step-control">
+              <p id="colour-step-line" class="colour-step-line"></p>
+              <div class="colour-step-row">
+                <label for="colour-step" data-t="colourStep.label"></label>
+                <div class="colour-step-track">
+                  <input id="colour-step" type="range" min="0" max="6" step="1" value="0" list="colour-step-ticks" aria-describedby="colour-step-value">
+                  <datalist id="colour-step-ticks"></datalist>
+                  <div id="colour-step-names" class="colour-step-names" aria-hidden="true"></div>
+                </div>
+                <output id="colour-step-value" class="colour-step-value mono" for="colour-step"></output>
+              </div>
+              <p id="colour-step-single" class="sr-only" hidden data-t="colourStep.single"></p>
             </div>
             <button id="colour-toggle" type="button" class="quiet colour-toggle" aria-pressed="false" data-t="colour.grayscale"></button>
             <!-- Task B12: the key number (the expected shift between A and B) stays in view; how to read the picture
@@ -373,7 +443,11 @@
         <section id="panel-changed" class="panel" aria-labelledby="h-changed">
           <h2 id="h-changed" class="panel-title" data-t="panel.changed"></h2>
           <details class="more-info"><summary data-t="ui.details"></summary><p class="note" data-t="changed.lead"></p></details>
+          <!-- Task B40: this target's round of Beat the physics, in Easy mode. -->
+          <p class="changed-play" hidden><button id="changed-play" type="button" class="quiet" data-t="play.guess"></button></p>
           <div id="changed-validated"></div>
+          <!-- Path through time (3D) (task B34): only for targets with at least 3 measured, identified positions. -->
+          <div id="changed-path" class="path3d-host" hidden></div>
           <section id="explore-box" class="explore-box" aria-labelledby="h-explore">
             <h3 id="h-explore" data-t="changed.explore"></h3>
             <p class="chip-line"><span class="chip chip-status-processed" data-t="chip.quickLook"></span></p>
@@ -415,6 +489,8 @@
           <p id="chart-note" class="note"></p>
           <div id="spectrum-table"></div>
         </section>
+        <!-- The Space Apps line (B30) on every page: here at the end of the panel, since Investigate has no footer. -->
+        <p class="inv-foot" data-t="footer.spaceApps"></p>
       </div>
     </section>
 
@@ -427,6 +503,7 @@
         <h1 id="predictions-title" tabindex="-1" data-t="story.title"></h1>
         <p class="lead" data-t="story.lead"></p>
         <p class="story-cta"><button id="story-pluto" type="button" class="primary" data-t="story.cta" disabled></button></p>
+        <p class="method-link"><a href="?page=method" data-page-link="method" data-t="method.link"></a></p>
       </header>
       <p id="ledger-loading" class="note" role="status" data-t="loading"></p>
       <div id="ledger-source" class="ledger-source" role="note" hidden></div>
@@ -592,6 +669,7 @@
         <p class="eyebrow" data-t="about.title"></p>
         <h1 id="about-title" tabindex="-1" data-t="about.headline"></h1>
         <p class="lead" data-t="about.lineShort"></p>
+        <p class="method-link"><a href="?page=method" data-page-link="method" data-t="method.link"></a></p>
         <details class="more-info">
           <summary data-t="ui.details"></summary>
           <p class="eyebrow" data-t="about.eyebrow"></p>
@@ -653,10 +731,23 @@
         </section>
       </div>
     </section>
+
+    <!-- ======================= How it works (task B30) ======================= -->
+    <!-- Our own words; every number comes from the data files (method.js) or a cited mission document. -->
+    <section id="page-method" class="page page-method" hidden aria-labelledby="method-title">
+      <header class="page-head">
+        <p class="eyebrow" data-t="nav.method"></p>
+        <h1 id="method-title" tabindex="-1" data-t="method.headline"></h1>
+        <p class="lead" data-t="method.lead"></p>
+        <p class="method-badge"><span class="chip" data-t="method.badge"></span></p>
+      </header>
+      <div id="method-body" class="method-body"></div>
+    </section>
   </main>
 
   <footer class="site-footer">
     <p data-t="footer.credit"></p>
+    <p data-t="footer.spaceApps"></p>
   </footer>
 
   <dialog id="reveal" class="reveal" aria-labelledby="reveal-title">
@@ -709,9 +800,12 @@
       </header>
       <p class="note" data-t="limits.lead"></p>
       <div id="limits-body" class="limits-body"></div>
+      <p class="method-link"><a href="?page=method" data-page-link="method" data-t="method.link"></a></p>
     </div>
   </dialog>
 
-  <script type="module" src="js/main.js?v=tenger-h1"></script>
+  <!-- Task B40: on a plain visit to Home the title block gets its words as soon as the strings arrive. -->
+  <script type="module" src="js/early.js?v=dev"></script>
+  <script type="module" src="js/main.js?v=dev"></script>
 </body>
 </html>

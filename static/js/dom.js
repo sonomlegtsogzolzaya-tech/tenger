@@ -3,6 +3,45 @@ import { has, t } from './i18n.js';
 
 export const $ = (id) => document.getElementById(id);
 
+/**
+ * Task B32: an element by id for the page shell (main.js), which never checks for null. A missing element (an old
+ * cached index.html with newer modules, or the reverse) gives a detached stand-in instead of null, so one missing
+ * part never stops the whole page; it is reported once as a warning. Modules that test for null keep $.
+ */
+const missingParts = new Set();
+export function part(id) {
+  const node = document.getElementById(id);
+  if (node) return node;
+  if (!missingParts.has(id)) {
+    missingParts.add(id);
+    console.warn(`Vestigium: #${id} is not on this page (an older cached file?); that part is skipped.`);
+  }
+  return document.createElement(id === 'search' ? 'form' : 'div');
+}
+
+/** Task B32: the build this page was published with (index.html's <meta name="build">); '' where there is none. */
+export const BUILD = (typeof document !== 'undefined' && document.querySelector('meta[name="build"]')?.content) || '';
+
+/**
+ * A data file's address with the build version (task B32), so a new deploy never reads an old cached data file:
+ * "data/index.json" -> "data/index.json?v=<build>". Other sites, the API and non-data paths are left as they are.
+ */
+export function versioned(url, build = BUILD, origin = typeof location !== 'undefined' ? location.origin : '') {
+  if (!build || typeof url !== 'string') return url;
+  if (/^[a-z][a-z\d+.-]*:|^\/\//i.test(url) && !(origin && url.startsWith(`${origin}/`))) return url;
+  if (!/(^|\/)data\//.test(url.split('?')[0])) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}v=${encodeURIComponent(build)}`;
+}
+
+/** Task B32: every fetch of a data file carries the build version (called once, first thing in main.js). */
+export function installVersionedFetch() {
+  if (typeof window === 'undefined' || window.fetch.versioned) return;
+  const native = window.fetch.bind(window);
+  const wrapped = (input, init) => native(versioned(input), init);
+  wrapped.versioned = true;
+  window.fetch = wrapped;
+}
+
 /** Creates an element. props: class, text, dataset, on<event>, other attributes; children may nest. */
 export function el(tag, props = {}, children = []) {
   const node = document.createElement(tag);
@@ -31,6 +70,20 @@ export function details(children, { label = t('ui.details'), className = '' } = 
 /** A key number as a stat tile (task B12): the number, what it counts, and an optional chip. */
 export function statTile({ value, label, badge = null, tone = '' }) {
   return el('div', { class: `stat-tile ${tone}`.trim() }, [el('p', { class: 'stat-value', text: value }), el('p', { class: 'stat-label', text: label }), badge]);
+}
+
+/**
+ * "Download the data (JSON): a.json · b.json" (task B30). Links only to files that are already published; each
+ * file: { href, file, saveAs }. Null when there is none.
+ */
+export function downloadLine(files, name) {
+  if (!files?.length) return null;
+  const links = files.flatMap(({ href, file, saveAs }, index) => [
+    index ? ' · ' : null,
+    // The build version (task B32) on the link too, so a download right after a deploy is never an old cached copy.
+    el('a', { href: versioned(href), download: saveAs ?? file, text: file, 'aria-label': t('download.aria', { file, name }) }),
+  ]);
+  return el('p', { class: 'download-line' }, [el('span', { text: t('download.label') }), ' ', links]);
 }
 
 /** A labelled pill, e.g. a status or a content type. */

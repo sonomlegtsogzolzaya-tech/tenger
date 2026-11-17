@@ -1,48 +1,40 @@
 # Demo clips for the 30-second video
 
-## The 30-second video, Vestigium (tasks B21, B26: a person using the site)
+## The 30-second video, Vestigium (task B27: the main screens, a person using the site)
 
-`vestigium-demo-30s.mp4`: **30.000 s** (900 frames), **3,426,294 bytes**, 1280×720, H.264 High, yuv420p, 30 fps, no
-audio track. The previous version (B25, no cursor) is kept as `vestigium-demo-30s-v2.mp4` with
-`vestigium-demo-30s-v2-contact.png`.
-- **One continuous take (B26).** Shots 1–6 are a single 27-second screencast of the current build, driven like a
-  person would use it: real mouse events (move, hover, click, a drag of the Contrast slider, wheel scrolling).
-- **The cursor.** A visible arrow (24 px, white with a dark outline and a soft shadow) is drawn by the page at
-  the mouse position in every frame, with a short ring ripple on each click.
-  - Moves follow slightly curved, eased (ease-in-out) paths of 400 to 700 ms, so the cursor moves at most 115 px
-    between two video frames.
-  - Scrolling is a wheel in 24 small steps over 700 to 820 ms.
-  - The cursor stays above y = 600, clear of the captions. Shot 2's caption sits at the top, because the Contrast
-    slider is near the bottom.
+`vestigium-demo-30s.mp4`: **30.000 s** (900 frames), **2,678,935 bytes**, 1280×720, H.264 High, yuv420p, 30 fps, no
+audio track. English captions are burned in; `vestigium-demo-30s.srt` has the same text, and
+`vestigium-demo-30s-contact.png` has one frame per shot.
+- **Earlier versions kept:** `-v3` is B26 (cursor, the earlier story) and `-v2` is B25.
+- **Recording.** Recorded on the build with Session A's B27a fix (an open target fully covers the 3D scene) and the
+  team logo.
+  - Shots 1–5 are one continuous take driven by real mouse events, with B26's cursor: a 24 px white arrow with a
+    soft shadow, eased curved moves (at most 95 px per video frame), click ripples and smooth wheel scrolling.
+  - The chip's tooltip is the browser's own `title` text, which a screen recording never captures, so the script
+    draws that same text the same way, as it does the cursor.
+  - Shot 4's caption sits at the top, clear of the cursor at the Contrast slider.
   - The title card has no cursor.
-- **Captions.** English captions are burned in; `vestigium-demo-30s.srt` has the same text and line breaks, and
-  `vestigium-demo-30s-contact.png` has one frame per shot.
-- **Real recordings only.** No generated images, video, voice or music. The captions and the title card are text
-  drawn by Chrome in the site's font and stylesheet, and the title card shows the logo file `static/img/logo.svg`.
-- **Recorded clicks**, with the times of the last run:
-  - 3.4 s "Watch Barnard's Star move" (Investigate opens, Blink playing);
-  - 5.7 s Contrast dragged right (1 → 2.4);
-  - 8.6 s "Predictions" in the menu, then a scroll past the four steps and back;
-  - 12.1 s "See how it works with Pluto" (the reveal opens), then "Next" five times to "Verdict" (15.5 s);
-  - 19.7 s "Close", a scroll to "Why we missed";
-  - 22.0 s "Why we missed" (open, the 2027 card right under it), a scroll to that card;
-  - 24.3 s "Planet X" in the menu (the Lab's top).
 
-  Before each click the script checks that the element under the pointer is the target, and after it that the
-  expected page or step appeared.
-
-| Time | Shot | Caption | Number checked against |
+| Time | Shot | Caption | Checked against |
 |---|---|---|---|
-| 0–4 s | Home's first screen over the live, turning 3D scene (B25), then its text slides off the full 3D section (LIVE time) | Vestigium: watch the sky move in real NASA SPHEREx pictures. | — |
-| 4–8 s | A tap on "Watch Barnard's Star move"; Barnard's Star blinking A ↔ B | Real pictures, 2010 and 2026: Barnard's Star moved about 168″. | Years read from the frames' own labels ("A · AllWISE 2010", "B · Aug 22, 2026"); 168″ read from the page's finding (catalogue motion 10.393″/yr × 16.1 years, as in `SUBMISSION-NUMBERS.md`) |
-| 8–14 s | Predictions: the four steps; "See how it works with Pluto"; the reveal's first steps (older pictures, the oval, the lock) | We locked a Pluto forecast on GitHub before opening the newest pictures. | `trials/pluto-position-2026b` |
-| 14–20 s | The reveal goes on (observed position, straight line, then the verdict "Miss" with the zoomed inset, shown for the last 3.7 s) | 5.9″ off: 3,000× closer than a straight line, but just outside our 95% oval. A published miss. | `verification.json`: miss, 5.90″ (D² 6.77 > 5.99); the straight line is 19,869.75″ off, 3,368× farther |
-| 20–24 s | "Why we missed" opened on the Pluto card, readable at full width since B22, then "Check us in 2027" right under it | We found why, and locked new forecasts for 2027. | `trials/pluto/postmortem.json`; open forecasts for 2027-04-25 and 2027-09-29 |
-| 24–27 s | The Planet X card on Home, a tap, the top of the Planet X Lab | Could SPHEREx see Planet X? We measured it: not in one image. | `planetx/depth.json` (the Lab's headline: 4 to 7 magnitudes too faint) |
-| 27–30 s | Title card: logo, Vestigium, nama2323.github.io/tenger, the team, "Data: NASA SPHEREx via NASA/IPAC IRSA" | (the card's own text) | README team line |
+| 0–5 s | Home's 3D first screen, the scene turning; the cursor drifts across | Vestigium: watch the sky move in real NASA SPHEREx pictures. | — |
+| 5–10 s | A smooth scroll down to the full 3D Solar System; the time slider dragged right (1 → 6, a month per second: the planets orbit), then LIVE | A live 3D map: the planets follow JPL’s orbits through time. | The scene's JPL elements (B10) |
+| 10–13 s | A smooth scroll back up to "Or pick a target"; a hover on WISE 0855 (its tooltip shows), then a click on Barnard's Star | Pick one of the five NASA challenge targets. | — |
+| 13–20 s | Barnard's Star blinking AllWISE 2010 ↔ SPHEREx 2026; Contrast dragged right (1 → 2.4) | Real pictures, 2010 and 2026: Barnard's Star moved about 168″. | Years from the frames' own labels; 168″ from the page's finding |
+| 20–26 s | "What changed" (opened at 17.9 s, under shot 4's caption; the measured finding: 10.4174 ± 0.3267″/yr, Gaia 10.3933), then "Estimate motion" (the browser quick look, labelled not validated): it tracks the star for about 1.3 s, counts up from 0 to 9.94 ± 0.48″/yr and holds that value with the "Catalogue 10.39″/yr" row above the caption from 21.6 to 24.3 s (B28); then the brightness-over-time chart | We measure how it moves from the pictures and check it against Gaia. | The user's caption, no numbers |
+| 26–30 s | Title card: the team logo, nama2323.github.io/tenger, the four names, "Data: NASA SPHEREx via NASA/IPAC IRSA", "Also inside: blind forecasts and a Planet X test" | (the card's own text) | — |
 
-Every number agrees with `docs/SUBMISSION-NUMBERS.md` and the files. "3,000×" is rounded down from 3,368×, which
-`SUBMISSION-NUMBERS.md` does not list; it comes from the trial's `verification.json`.
+The recorded clicks, from the last run:
+- 7.0–8.0 s the time slider drag; 8.8 s LIVE;
+- 12.2 s Barnard's Star (the target opens after the 3D flight, at 14.2 s);
+- 16.3 s the Contrast drag;
+- 17.9 s "What changed"; 19.5 s "Estimate motion" (the final value shows at 21.6 s and holds until 24.3 s).
+
+Each click was checked on its target, and the expected state followed: live time, Barnard's Star open, contrast
+up, the motion result and the chart. While Barnard's Star is open, no 3D label or control is visible or under the
+pointer.
+
+The B21/B26 shot list (the Pluto reveal and the Planet X Lab) describes the `-v2` and `-v3` files.
 
 While recording, every shot was checked:
 - no exception;

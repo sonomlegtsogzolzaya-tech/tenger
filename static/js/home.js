@@ -1,8 +1,9 @@
 // Home / Investigate: coordinate search, the challenge shortcuts, the schematic distance map and the
 // accessible target list. All three views are built from one target list (targets.js).
 import { $, el, prefersReducedMotion } from './dom.js';
-import { has, t, tData } from './i18n.js';
+import { has, t } from './i18n.js';
 import { AU_PER_UNIT, RINGS, mapRadius, placeOnMap } from './map.js';
+import { famousLine, famousResult } from './describe.js';
 import { isLegacyOnly, isOpenable } from './targets.js';
 
 const BLINK_MS = 900;
@@ -32,27 +33,9 @@ export function predictionLabel(entry) {
 }
 
 export const statusLabel = (entry) => (isLegacyOnly(entry) ? t('data.legacyOnly') : t(`data.${entry.dataStatus}`));
-const hookOf = (entry) => (has(`hook_${entry.key}`) ? t(`hook_${entry.key}`) : null);
 export const kindLabel = (kind) => t(has(`kind${kind}`) ? `kind${kind}` : 'kindother');
 
 // ---------- Blinking thumbnails ----------
-
-/** A looping pair of prepared thumbnails; which one shows is driven by one attribute on the body. */
-function blinkTile(key, thumbs) {
-  const ringless = thumbs.kind === 'colour' || thumbs.kind === 'index';
-  const tile = el('div', { class: ringless ? 'blink place' : 'blink', 'aria-hidden': 'true' });
-  thumbs.frames.forEach((frame, index) => {
-    const side = index ? 'b' : 'a';
-    if (Number.isFinite(frame.x)) tile.style.setProperty(`--${side}x`, `${frame.x * 100}%`);
-    if (Number.isFinite(frame.y)) tile.style.setProperty(`--${side}y`, `${frame.y * 100}%`);
-    tile.append(
-      el('img', { src: frame.src ?? `data/${key}/${frame.file}`, alt: '', class: `plate-${side}`, loading: 'lazy' }),
-      el('b', { class: `label-${side}`, text: frame.label }),
-    );
-  });
-  tile.append(el('i', { class: 'ring' }));
-  return tile;
-}
 
 export function startBlinking() {
   clearInterval(blinkTimer);
@@ -65,27 +48,42 @@ export function startBlinking() {
   }, BLINK_MS);
 }
 
-// ---------- Shortcuts ----------
+// ---------- Famous targets (task B29) ----------
 
-/** One of the five official targets as a compact chip with a tiny blinking thumbnail. */
-function shortcutChip(entry, thumbs, onOpen) {
-  const label = `${entryName(entry)}. ${hookOf(entry) ?? ''} ${statusLabel(entry)}. ${predictionLabel(entry)}.`;
-  const tile = thumbs ? blinkTile(entry.key, thumbs) : el('span', { class: 'blink empty', 'aria-hidden': 'true' });
-  if (!isOpenable(entry)) {
-    return el('li', {}, el('span', { class: `target-chip chip-off colour-${entry.colour}`, 'aria-label': label, role: 'img' }, [tile, entryName(entry)]));
-  }
-  return el('li', {}, el('button', {
-    type: 'button',
-    class: `target-chip colour-${entry.colour}`,
-    'aria-label': label,
-    title: label,
-    onclick: () => onOpen(entry),
-  }, [tile, el('span', { text: entryName(entry), 'aria-hidden': 'true' })]));
+/** The eight targets in the order of the rail: the five challenge targets, then Pluto, Makemake and 3I/ATLAS. */
+const FAMOUS_ORDER = ['barnard', 'wise0855', 'epsindib', 'rwaur', 'rdra', 'pluto', 'makemake', '3i-atlas'];
+
+export const famousEntries = (entries) => FAMOUS_ORDER.map((key) => entries.find((entry) => entry.key === key)).filter(Boolean);
+
+/** What Home says about a target's forecast, from scoreboard.json (`board`; describe.js famousResult, task B29g). */
+export const famousResultOf = (entry, board) => famousResult({ key: entry.key, board, trialIds: entry.prediction.trialIds, seeOnly: entry.seeOnly });
+
+/** The card's line, from the data files (describe.js famousLine). */
+export const famousLineOf = (entry, board) => famousLine({ kind: entry.kind, distance: entry.map?.distance, status: famousResultOf(entry, board).card });
+
+/** A still thumbnail (the newer prepared picture), or a dot in the target's colour when there is none. */
+export function famousThumb(entry, thumbs) {
+  const frame = thumbs?.frames?.[1] ?? thumbs?.frames?.[0];
+  if (!frame) return el('span', { class: `famous-dot colour-${entry.colour}`, 'aria-hidden': 'true' });
+  return el('img', { src: frame.src ?? `data/${entry.key}/${frame.file}`, alt: '', width: '44', height: '44', decoding: 'async' });
 }
 
-function renderShortcuts(entries, thumbsOf, onOpen) {
-  const official = entries.filter((entry) => entry.official);
-  $('shortcut-list').replaceChildren(...official.map((entry) => shortcutChip(entry, thumbsOf(entry), onOpen)));
+function renderFamous(entries, thumbsOf, onSelect, board) {
+  $('famous-list').replaceChildren(...famousEntries(entries).map((entry) => {
+    const line = famousLineOf(entry, board);
+    return el('li', {}, el('button', {
+      type: 'button',
+      class: `famous-card colour-${entry.colour}`,
+      'data-key': entry.key,
+      'aria-pressed': 'false',
+      // The result once only: not again when the line already says it ("too little data to forecast").
+      'aria-label': (() => { const result = famousResultOf(entry, board).popup; return line.toLowerCase().includes(result.toLowerCase()) ? t('famous.cardShort', { name: entryName(entry), line }) : t('famous.card', { name: entryName(entry), line, result }); })(),
+      onclick: () => onSelect(entry),
+    }, [
+      el('span', { class: 'famous-thumb', 'aria-hidden': 'true' }, famousThumb(entry, thumbsOf(entry))),
+      el('span', { class: 'famous-words', 'aria-hidden': 'true' }, [el('strong', { text: entryName(entry) }), el('small', { text: line })]),
+    ]));
+  }));
 }
 
 // ---------- Map ----------
@@ -204,41 +202,6 @@ export function placeMapLabels() {
   });
 }
 
-// ---------- Targets rail ----------
-
-const GROUPS = ['star', 'variable', 'solar', 'hypothetical', 'other'];
-
-function railItem(entry, onOpen) {
-  const distance = entry.map ? formatDistance(entry.map.distance) : null;
-  const source = entry.map?.distance?.source;
-  const status = isOpenable(entry) || !entry.statusReasonKey
-    ? statusLabel(entry)
-    : t('data.unavailableBecause', { reason: tData(entry.statusReasonKey, 'explain.unknown') });
-  const lines = [
-    el('strong', { text: entryName(entry) }),
-    el('small', { text: `${kindLabel(entry.kind)} · ${t(`role.${entry.role}`)}` }),
-    el('small', { text: distance ? t('feed.distance', { distance, source: source ?? '—' }) : t('feed.noDistance') }),
-    el('small', { text: `${status} · ${t('feed.prediction', { status: predictionLabel(entry) })}` }),
-  ];
-  if (!isOpenable(entry)) return el('li', {}, el('div', { class: `rail-item is-off colour-${entry.colour}` }, lines));
-  return el('li', {}, el('button', {
-    type: 'button',
-    class: `rail-item colour-${entry.colour}`,
-    onclick: () => onOpen(entry),
-  }, [...lines, el('span', { class: 'rail-go', text: t('feed.open') })]));
-}
-
-/** The accessible target list: the same entries as the map, grouped by type. */
-function renderRail(entries, onOpen) {
-  const groups = GROUPS.map((colour) => ({ colour, members: entries.filter((entry) => entry.colour === colour) }))
-    .filter((group) => group.members.length);
-  $('feed-list').replaceChildren(...groups.map((group) => el('section', { class: `rail-group colour-${group.colour}` }, [
-    el('h3', {}, [el('i', { class: 'dot', 'aria-hidden': 'true' }), t(`rail.group.${group.colour}`)]),
-    el('ul', {}, group.members.map((entry) => railItem(entry, onOpen))),
-  ])));
-  $('rail-count').textContent = String(entries.length);
-}
-
 // ---------- Search ----------
 
 export function buildFovOptions(select, selected = DEFAULT_FOV) {
@@ -289,8 +252,40 @@ export function drawStarfield(canvas = $('starfield')) {
 // ---------- Page ----------
 
 /** thumbsOf(entry) returns { kind, frames } prepared thumbnails or null. */
-export function renderHome({ entries, indexLoaded, thumbsOf, onOpen }) {
-  renderShortcuts(entries, thumbsOf, onOpen);
+/** Task B35: the search list's prepared groups (the five challenge targets are the Famous targets already). */
+export const EXPLORE_GROUPS = ['stars', 'galaxies', 'nebulae', 'clusters'];
+
+/**
+ * Prepared objects for "More to explore": the search list's places (targets.json) in the given groups, minus any
+ * whose pictures do not open on the public site (`excluded`, found by opening each on a github.io build).
+ */
+export function exploreGroups(places, excluded = []) {
+  return EXPLORE_GROUPS.map((group) => ({
+    group, members: places.filter((entry) => entry.legacy?.category === group && !excluded.includes(entry.key)),
+  })).filter((item) => item.members.length);
+}
+
+/** "More to explore": one row per group; each card has its thumbnail, "Pictures only: no forecast" and its line. */
+export function renderExplore(places, thumbsOf, onSelect, excluded = []) {
+  $('explore-groups').replaceChildren(...exploreGroups(places, excluded).map(({ group, members }) => el('section', { class: 'explore-group' }, [
+    el('h3', { class: 'explore-group-title', text: t(`category_${group}`) }),
+    el('ul', { class: 'famous-list explore-list', 'aria-label': t('explore.groupLabel', { group: t(`category_${group}`), count: String(members.length) }) }, members.map((entry) => {
+      const hook = has(`hook_${entry.key}`) ? t(`hook_${entry.key}`) : '';
+      const thumb = famousThumb(entry, thumbsOf(entry));
+      if (thumb.tagName === 'IMG') thumb.loading = 'lazy';
+      return el('li', {}, el('button', {
+        type: 'button', class: `famous-card explore-card colour-${entry.colour}`, 'data-key': entry.key, 'aria-pressed': 'false',
+        'aria-label': t('explore.card', { name: entryName(entry), line: t('explore.picturesOnly'), hook }),
+        onclick: () => onSelect(entry),
+      }, [
+        el('span', { class: 'famous-thumb', 'aria-hidden': 'true' }, thumb),
+        el('span', { class: 'famous-words', 'aria-hidden': 'true' }, [el('strong', { text: entryName(entry) }), el('small', { class: 'explore-only', text: t('explore.picturesOnly') }), el('small', { text: hook })]),
+      ]));
+    })),
+  ])));
+}
+
+export function renderHome({ entries, indexLoaded, thumbsOf, onOpen, onSelect, board = null }) {
+  renderFamous(entries, thumbsOf, onSelect, board);
   renderMap(entries, indexLoaded, onOpen);
-  renderRail(entries, onOpen);
 }

@@ -7,10 +7,11 @@ import { drawLightCurve, drawSpectrum, drawWingCurve } from './chart.js';
 import { createSource } from './contract.js';
 import { allowsDifference, comparisonReasons, epochCoverage, pairComparison } from './epochs.js';
 import { parseCoordinates, separationDeg } from './coords.js';
-import { $, chip, dataTable, el, formatNumber, formatUtc, prefersReducedMotion } from './dom.js';
+// Task B32: the shell's lookups never return null (dom.js part), so a missing part cannot stop the page.
+import { part as $, chip, dataTable, el, formatNumber, formatUtc, installVersionedFetch, prefersReducedMotion } from './dom.js';
 import {
-  buildFovOptions, drawStarfield, entryName, fillCoordinates, formatDistance, kindLabel, placeMapLabels, predictionLabel, renderHome, startBlinking,
-  statusLabel,
+  buildFovOptions, drawStarfield, entryName, famousEntries, famousLineOf, famousResultOf, famousThumb, fillCoordinates, formatDistance, kindLabel, placeMapLabels, predictionLabel,
+  renderExplore, renderHome, startBlinking, statusLabel,
 } from './home.js';
 import { addMissingStrings, applyTranslations, has, t, tData } from './i18n.js';
 import { findByName, searchMatches } from './names.js';
@@ -21,6 +22,8 @@ import { initHelp } from './help.js';
 import { hasPublishedTrials } from './ledger.js';
 import { currentReveal, initLedger, showLedger, syncRevealFromUrl } from './ledger-ui.js';
 import { renderAbout, renderReserved } from './pages.js';
+import { initMethod, showMethod } from './method-ui.js';
+import { renderPath3d } from './path3d-ui.js';
 import { POSTMORTEM_PATH, readPostmortem } from './postmortem.js';
 import {
   drawPlate, limitsFor, paintComposite, paintDifference, paintFalseColour, paintMono, stacksFor, StackCache, tintFor,
@@ -29,13 +32,13 @@ import { loadReserved, reservedRegionNear } from './reserved.js';
 import { bandToParam, buildRoute, embedCode, PAGES, parseRoute, resolveRoute } from './route.js';
 import { isSaturated, measureMotion as trackMotion, measureSpectrum as photometry } from './science.js';
 import { createSky } from './sky.js';
-import { flyThen, homeShown, initSpace } from './space-ui.js';
+import { flyThen, homeShown, initSpace, releaseTarget, selectTarget, setFilter, setLayer, setScenePaused } from './space-ui.js';
 import { showLoopPage } from './loop-ui.js';
 import { loadPlanetX, renderHiddenRound } from './planetx-ui.js';
 import { DEPTH_PATH, glanceOf, readDepth } from './planetx.js';
-import { moonShare, plainLine } from './describe.js';
+import { countUpShown, moonShare, plainLine } from './describe.js';
 import { loadBatch } from './batch-ui.js';
-import { isTourRunning, nextTourStep, runTour, shouldAutoStart, stopTour } from './tour.js';
+import { isTourRunning, nextTourStep, runTour, stopTour } from './tour.js';
 import {
   channelWavelength, CHANNELS, colourGroupsPresent, DETECTOR_RANGES, detectorOfChannel, mjdToDate, mjdToYear, pixelToSky, positionAt,
   selectBand, skyToPixel, visitsOf, wellCovered,
@@ -55,7 +58,7 @@ const ALL_DATES = 'all';
 const MOTION_SIGNIFICANCE = 3;
 const AUTO_SPECTRUM_FRAMES = 12;
 const FULL_RANGE_LABEL = '0.75–5 μm';
-const COUNT_UP_MS = 900;
+const COUNT_UP_MS = 800;
 const DRAG_THRESHOLD_PX = 4;
 const FILM_TILE_DELAY_MS = 30;
 const FILM_FIRST_DELAY_MS = 120;
@@ -247,6 +250,7 @@ function plateLabel(step) {
 }
 
 function render() {
+  syncColourStep();
   if (state.previews) {
     renderPreview();
     return;
@@ -329,7 +333,7 @@ function buildArrays() {
 
 /** The page's background glow is the current picture itself, heavily blurred (when the page has one). */
 function paintAmbient() {
-  const ambient = $('ambient');
+  const ambient = document.getElementById('ambient'); // optional: drawn only where the page has it
   if (ambient) ambient.getContext('2d').drawImage($('plate'), 0, 0, ambient.width, ambient.height);
 }
 
@@ -944,6 +948,56 @@ function setBand(band, { write = true } = {}) {
   if (write) writeUrl();
 }
 
+// ---------- Colour slider under the picture (task B31) ----------
+// All, or one detector array (D1–D6), for both A and B: the existing per-array images and the URL band value.
+// Display only: each array keeps one stretch for every date (sharedLimits), and no measurement changes.
+
+const rangeText = (low, high) => ({ low: low.toFixed(2), high: high.toFixed(2) });
+
+/** The step's words, e.g. "D3 · 1.63–2.41 µm", from our array table. */
+function colourStepText(band) {
+  if (band.kind === 'detector') return t('colourStep.arrayValue', { n: String(band.detector), ...rangeText(...DETECTOR_RANGES[band.detector]) });
+  if (band.kind === 'channel') return t('colourStep.channelValue', { n: String(detectorOfChannel(band.channel)), um: channelWavelength(band.channel).toFixed(2) });
+  return t('colourStep.allValue', rangeText(DETECTOR_RANGES[1][0], DETECTOR_RANGES[6][1]));
+}
+
+/** Pictures with only one colour: AllWISE as A or B, a preview-only target, or no frames at all. */
+function singleColour() {
+  if (state.previews || !state.job || !state.frames.length) return true;
+  return abSteps().some((step) => step?.key === WISE_STEP);
+}
+
+function syncColourStep() {
+  const input = $('colour-step');
+  const band = state.band;
+  const value = band.kind === 'detector' ? band.detector : band.kind === 'channel' ? detectorOfChannel(band.channel) : 0;
+  if (Number(input.value) !== value) input.value = String(value);
+  const text = colourStepText(band);
+  $('colour-step-value').textContent = text;
+  input.setAttribute('aria-valuetext', text);
+  const single = singleColour();
+  input.disabled = single;
+  $('colour-step-control').classList.toggle('is-single', single);
+  $('colour-step-control').title = single ? t('colourStep.single') : '';
+  input.title = single ? t('colourStep.single') : '';
+  $('colour-step-single').hidden = !single;
+  input.setAttribute('aria-describedby', single ? 'colour-step-value colour-step-single' : 'colour-step-value');
+}
+
+function buildColourStep() {
+  const arrays = Object.keys(DETECTOR_RANGES).length;
+  $('colour-step-line').textContent = t('colourStep.line', { channels: String(CHANNELS), arrays: String(arrays) });
+  $('colour-step').max = String(arrays);
+  const steps = [['0', t('colourStep.all')], ...Object.keys(DETECTOR_RANGES).map((n) => [n, t('colourStep.array', { n })])];
+  $('colour-step-ticks').replaceChildren(...steps.map(([value, label]) => el('option', { value, label })));
+  $('colour-step-names').replaceChildren(...steps.map(([value, label]) => el('span', { dataset: { step: value }, text: label })));
+  $('colour-step').addEventListener('input', () => {
+    const step = Number($('colour-step').value);
+    setBand(step >= 1 && step <= arrays ? { kind: 'detector', detector: step } : { kind: 'composite' });
+  });
+  syncColourStep();
+}
+
 function buildBandScale() {
   const stops = Array.from({ length: CHANNELS }, (_, channel) => el('span', {
     class: channel && detectorOfChannel(channel) !== detectorOfChannel(channel - 1) ? 'array-start' : null,
@@ -1398,11 +1452,13 @@ function countUp(node, value, unit) {
     write(value);
     return;
   }
+  // From 0 to the value in COUNT_UP_MS. A frame's time can be a little earlier than the start; countUpShown clamps
+  // that to 0, so the number never shows below 0 or past the value (task B28).
   const started = performance.now();
+  write(0);
   const step = (now) => {
-    const progress = Math.min(1, (now - started) / COUNT_UP_MS);
-    write(value * (1 - (1 - progress) ** 3));
-    if (progress < 1) requestAnimationFrame(step);
+    write(countUpShown(value, now - started, COUNT_UP_MS));
+    if (now - started < COUNT_UP_MS) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
@@ -1465,6 +1521,12 @@ async function refreshPanels() {
   const custom = !entry;
   await ensureInvestigation();
   renderChanged($('changed-validated'), { investigation: app.investigation, custom });
+  syncPlayButtons();
+  // Path through time (3D) (task B34): our measured positions from the published investigation file only.
+  if ($('changed-path').dataset.key !== `${entry?.key ?? ''}|${app.investigation?.path ?? ''}`) {
+    $('changed-path').dataset.key = `${entry?.key ?? ''}|${app.investigation?.path ?? ''}`;
+    renderPath3d($('changed-path'), { investigation: custom ? null : app.investigation, name: entry ? entryName(entry) : '' });
+  }
   if (entry && state.target) describeTarget(state.target, Number($('fov').value) || state.target.fov || DEFAULT_FOV);
   captionKey = '';
   render();
@@ -1474,6 +1536,13 @@ async function refreshPanels() {
     epochs: app.investigation?.state !== 'ok' ? null : state.previews
       ? { matched: state.previews.length, total: app.investigation.doc.epochs?.length ?? 0, preview: true }
       : epochCoverage(app.investigation.doc, state.visits.map((visit) => visit.visit)),
+    // Task B30: the target's published investigation file, as it is on the server.
+    download: entry && app.investigation?.path ? {
+      href: `${app.source.base}${app.investigation.path}`,
+      file: app.investigation.path.split('/').pop(),
+      saveAs: app.investigation.path.replaceAll('/', '-'),
+      name: entryName(entry),
+    } : null,
   });
   renderSpectrumNote($('spectrum-note'), { investigation: app.investigation });
   $('explore-box').hidden = !state.frames.length;
@@ -1584,6 +1653,7 @@ function showPage(page, { push = true, focus = true } = {}) {
     homeShown();
   }
   if (page === 'predictions') showLedger();
+  if (page === 'method') showMethod();
   if (page === 'game' || page === 'learn') ensurePlanetX();
   if (page === 'learn') ensureBatch()?.then(setBatch);
   if (page === 'loop' && app.source) {
@@ -1855,7 +1925,7 @@ function applyLocation({ push = false } = {}) {
     if (resolved.page === 'game' && route.round && route.round !== currentRoundId()) selectRound(route.round);
     if (resolved.page === 'learn' && (route.lesson ?? null) !== currentLearnView()) showLearn(route.lesson, { notify: false, focus: false });
     showPage(resolved.page, { push, focus: false });
-    if (resolved.page === 'predictions') syncRevealFromUrl(route.trial);
+    if (resolved.page === 'predictions') syncRevealFromUrl(route.trial, route.step);
     return;
   }
   app.panel = route.panel ?? 'see';
@@ -1939,6 +2009,10 @@ async function search(text) {
   }
   $('search-input').setAttribute('aria-invalid', 'false');
   const named = findByName(query, app.legacyPresets);
+  if (named && (named.category ?? 'more') === 'more' && !api.liveAvailable()) {
+    $('search-message').textContent = t('note.liveUnavailable');
+    return;
+  }
   if (named) {
     openNamed(named);
     return;
@@ -1999,7 +2073,8 @@ function searchRow(entry) {
 
 function renderSearchList() {
   const matches = searchMatches($('search-input').value, app.legacyPresets);
-  const groups = [...SEARCH_GROUPS, 'more'].flatMap((group) => {
+  // Task B35: "More famous objects" load from the archive through our server, so the public site leaves them out.
+  const groups = [...SEARCH_GROUPS, ...(api.liveAvailable() ? ['more'] : [])].flatMap((group) => {
     const members = matches.filter((entry) => (entry.category ?? 'more') === group);
     if (!members.length) return [];
     return [el('h3', { text: t(`category_${group}`) }), ...members.map(searchRow)];
@@ -2054,7 +2129,9 @@ async function fillPlanetXCard() {
     const response = await fetch(url);
     const glance = response.ok ? glanceOf(readDepth(await response.json())) : null;
     if (glance) {
-      $('hero-planetx-line').textContent = t(glance.low === glance.high ? 'hero.planetxLineOne' : 'hero.planetxLine', { low: String(glance.low), high: String(glance.high) });
+      const line = t(glance.low === glance.high ? 'hero.planetxLineOne' : 'hero.planetxLine', { low: String(glance.low), high: String(glance.high) });
+      $('hero-planetx-line').textContent = line;
+      $('hero-planetx').title = line;
     }
   } catch {
     // The card still opens the Lab, which says what it can.
@@ -2069,7 +2146,7 @@ function closeMore() {
 
 function toggleSkyPanel(wanted) {
   // Real sky picks positions to load live; the public static site cannot load them, so it never opens there (B16).
-  if (!api.liveAvailable() || !$('sky-panel')) return;
+  if (!api.liveAvailable() || !document.getElementById('sky-panel')) return;
   const open = wanted ?? $('sky-panel').hidden;
   $('sky-panel').hidden = !open;
   $('sky-open').setAttribute('aria-expanded', String(open));
@@ -2208,10 +2285,7 @@ function bindControls() {
   $('tour-stop').addEventListener('click', stopTour);
   bindViewingTools();
   $('menu-toggle').addEventListener('click', () => setMenu($('menu-toggle').getAttribute('aria-expanded') !== 'true'));
-  $('rail-toggle').addEventListener('click', () => {
-    const open = $('rail-toggle').getAttribute('aria-expanded') !== 'true';
-    $('rail-toggle').setAttribute('aria-expanded', String(open));
-  });
+  bindFamous();
   // Real sky only where the local server runs: on github.io the button is removed and the map library never loads.
   if (api.liveAvailable()) {
     $('sky-open').addEventListener('click', () => {
@@ -2366,6 +2440,8 @@ async function loadData() {
   ]);
   app.scoreboard = scoreboard.state === 'ok' ? scoreboard.doc : null;
   const playable = rounds.filter((round) => round.state === 'ok');
+  // Task B40: which round belongs to which trial, for the "Play" buttons.
+  app.roundIds = playable.map((round) => ({ id: round.doc.round_id, trial: round.doc.trial_id }));
   const bundles = await Promise.all(playable.map((round) => app.source.trial(round.doc.trial_id)));
   renderGamePage({
     rounds: playable.map((round, index) => ({ doc: round.doc, bundle: bundles[index] })),
@@ -2406,6 +2482,17 @@ async function loadData() {
   // Predictions: real trial files as soon as the real index lists any; until then the labelled fixtures.
   const realIndex = fixtures ? await real.index() : indexState;
   const fallback = !fixtures && !hasPublishedTrials(realIndex);
+  // "How it works" (task B30): real files only; its links to other pages switch the page in place.
+  initMethod({
+    nameOf: (key) => {
+      const entry = key ? app.allTargets.find((item) => item.key === canonicalKey(key)) : null;
+      return entry ? entryName(entry) : key;
+    },
+    onNavigate: (href) => {
+      history.pushState(null, '', href);
+      applyLocation();
+    },
+  });
   initLedger({
     source: fallback ? createSource({ fixtures: true }) : app.source,
     fallback,
@@ -2469,6 +2556,208 @@ function ensureBatch() {
   return batchLoad;
 }
 
+// ---------- Famous targets (task B29) ----------
+
+let famousOpen = null;
+
+/** A card (or a target's 3D label): the camera flies there, the card is highlighted and the popup opens. */
+function selectFamous(entry) {
+  famousOpen = entry;
+  for (const card of document.querySelectorAll('.famous-card')) card.setAttribute('aria-pressed', String(card.dataset.key === entry.key));
+  $('pop-thumb').replaceChildren(famousThumb(entry, thumbsOf(entry)));
+  $('pop-name').textContent = entryName(entry);
+  if (entry.role === 'place') {
+    // Task B35: a "More to explore" object has pictures and no trial; the popup says so first.
+    $('pop-line').textContent = t('explore.picturesOnly');
+    $('pop-status').textContent = has(`hook_${entry.key}`) ? t(`hook_${entry.key}`) : '';
+  } else {
+    $('pop-line').textContent = famousLineOf(entry, app.scoreboard);
+    // The result in plain words with the trial type, from scoreboard.json (task B29g).
+    $('pop-status').textContent = famousResultOf(entry, app.scoreboard).popup;
+  }
+  const see = $('pop-see');
+  see.disabled = !isOpenable(entry);
+  see.textContent = t(isOpenable(entry) ? 'famous.see' : 'famous.notReady');
+  $('target-pop').hidden = false;
+  syncPlayButtons();
+  selectTarget(entry.key);
+  (see.disabled ? $('pop-close') : see).focus({ preventScroll: true });
+}
+
+/** Closes the popup; the camera returns to the whole view and the motion resumes. quiet: no focus move. */
+function closeFamous({ quiet = false, home = true } = {}) {
+  if (!famousOpen) return;
+  const key = famousOpen.key;
+  const hadFocus = $('target-pop').contains(document.activeElement);
+  famousOpen = null;
+  $('target-pop').hidden = true;
+  for (const card of document.querySelectorAll('.famous-card')) card.setAttribute('aria-pressed', 'false');
+  if (home) releaseTarget();
+  if (hadFocus && !quiet) document.querySelector(`.famous-card[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
+}
+
+/** The type filter's groups (task B29), from each target's kind in the data files. */
+const FILTERS = [
+  ['all', () => true],
+  ['stars', (entry) => entry.kind === 'faststar' || entry.kind === 'star'],
+  ['browndwarfs', (entry) => entry.kind === 'browndwarf'],
+  ['variables', (entry) => entry.kind === 'variable'],
+  ['solar', (entry) => colourOf(entry.kind) === 'solar'],
+];
+
+/** The filter chips above the rail (only groups with members) and the hint over the scene; after the data load. */
+function renderFamousExtras() {
+  const famous = famousEntries(app.entries);
+  const targets = new Set(famous.map((entry) => entry.key));
+  const choose = (name, test) => {
+    const keys = name === 'all' ? null : new Set(famous.filter(test).map((entry) => entry.key));
+    for (const chipButton of $('famous-filters').children) chipButton.setAttribute('aria-pressed', String(chipButton.dataset.filter === name));
+    for (const card of document.querySelectorAll('.famous-card')) card.classList.toggle('is-dim', Boolean(keys) && !keys.has(card.dataset.key));
+    setFilter(keys, targets);
+    $('famous-filter-status').textContent = keys
+      ? t('filter.status', { filter: t(`filter.${name}`), count: String(keys.size), total: String(famous.length) })
+      : t('filter.statusAll', { total: String(famous.length) });
+  };
+  $('famous-filters').replaceChildren(...FILTERS.filter(([name, test]) => name === 'all' || famous.some(test)).map(([name, test]) => el('button', {
+    type: 'button', class: 'filter-chip', 'data-filter': name, 'aria-pressed': String(name === 'all'), text: t(`filter.${name}`),
+    onclick: () => choose(name, test),
+  })));
+  // The hint (task B29): the wide or the phone wording; it fades after the first interaction and returns on reload.
+  const hint = $('space-hint');
+  const wording = () => t(matchMedia('(max-width: 900px)').matches ? 'hint.phone' : 'hint.wide', { n: String(famous.length) });
+  hint.textContent = wording();
+  hint.hidden = false;
+  matchMedia('(max-width: 900px)').addEventListener('change', () => { hint.textContent = wording(); });
+  const fade = () => {
+    hint.classList.add('is-gone');
+    for (const name of ['pointerdown', 'wheel', 'touchstart', 'keydown']) $('home-map').removeEventListener(name, fade);
+  };
+  for (const name of ['pointerdown', 'wheel', 'touchstart', 'keydown']) $('home-map').addEventListener(name, fade, { passive: true });
+}
+
+/** Task B35: "More to explore" sits in the rail on wide screens (it scrolls) and below the first screen on phones. */
+const PHONE_LAYOUT = '(max-width: 900px)';
+function placeExplore() {
+  const section = $('explore-more');
+  if (matchMedia(PHONE_LAYOUT).matches) {
+    if (section.parentElement !== $('page-home')) $('home-map').after(section);
+  } else if (section.parentElement !== $('famous')) $('famous').insertBefore(section, document.querySelector('.famous-foot'));
+}
+
+/** Task B40: the game round whose trial is this target's (barnard-position, epsindib-position, pluto-position). */
+function roundFor(entry) {
+  if (!entry) return null;
+  return app.roundIds?.find((round) => entry.prediction?.trialIds?.includes(round.trial)) ?? null;
+}
+
+/** Opens that round in Easy mode; the browser's Back returns to where the visitor was. */
+function playRoundFor(entry) {
+  const round = roundFor(entry);
+  if (!round) return;
+  showPage('game');
+  selectRound(round.id);
+  const easy = document.getElementById('mode-easy');
+  if (easy && easy.getAttribute('aria-pressed') !== 'true' && !easy.disabled) easy.click();
+}
+
+/** Shows or hides the "Play" buttons for the current popup target and the open investigation. */
+function syncPlayButtons() {
+  $('pop-play').hidden = !roundFor(famousOpen);
+  const changed = roundFor(app.entry);
+  document.querySelector('.changed-play').hidden = !changed;
+}
+
+/** Task B36: the all-sky Sky map, loaded on first use; markers open Investigate; Close returns to Home. */
+let skymapOpener = null;
+async function showSkyMap(event) {
+  const opener = event?.currentTarget ?? $('skymap-open');
+  skymapOpener = opener;
+  setScenePaused(true);
+  const { openSkyMap } = await import('./skymap.js');
+  const famous = famousEntries(app.entries);
+  const places = app.allTargets.filter((entry) => entry.role === 'place');
+  const fixed = [...famous, ...places].filter((entry) => Number.isFinite(entry.centre?.ra) && Number.isFinite(entry.centre?.dec))
+    .map((entry) => ({ key: entry.key, name: entryName(entry), ra: entry.centre.ra, dec: entry.centre.dec, colour: famous.includes(entry) ? entry.colour : 'other' }));
+  // Moving targets (Pluto, Makemake, 3I/ATLAS) have no fixed place: they are marked where our latest SPHEREx picture
+  // of them was centred (its JPL Horizons position, from the investigation file), with that date in the label.
+  const moving = await Promise.all(famous.filter((entry) => !fixed.some((marker) => marker.key === entry.key) && entry.investigationPath).map(async (entry) => {
+    const doc = await fetch(`data/${entry.investigationPath}`).then((response) => (response.ok ? response.json() : null)).catch(() => null);
+    const last = (doc?.observations ?? []).filter((item) => Number.isFinite(item.centre?.ra_deg) && Number.isFinite(item.centre?.dec_deg)).sort((a, b) => a.t_start_mjd - b.t_start_mjd).at(-1);
+    if (!last) return null;
+    const date = formatUtc(new Date((last.t_start_mjd - 40587) * 86400000), { time: false });
+    return { key: entry.key, name: t('skymap.movingLabel', { name: entryName(entry), date }), ra: last.centre.ra_deg, dec: last.centre.dec_deg, colour: entry.colour };
+  }));
+  const markers = [...fixed, ...moving.filter(Boolean)];
+  await openSkyMap({
+    markers,
+    focus: famousOpen?.key ?? app.entry?.key ?? 'barnard',
+    onOpen: (key) => {
+      const entry = findEntry(key);
+      setScenePaused(false);
+      if (!entry) return;
+      app.panel = 'see';
+      app.scrollToPanel = false;
+      setMode('blink');
+      openEntry(entry);
+    },
+    onClose: () => {
+      setScenePaused(false);
+      if (document.body.dataset.page === 'home') skymapOpener?.focus({ preventScroll: true });
+    },
+  });
+}
+
+function bindFamous() {
+  matchMedia(PHONE_LAYOUT).addEventListener('change', placeExplore);
+  $('skymap-open').addEventListener('click', showSkyMap);
+  $('skymap-open-phone').addEventListener('click', showSkyMap);
+  // Task B40: the target's round of Beat the physics, in Easy mode, from the popup and from What changed.
+  $('pop-play').addEventListener('click', () => playRoundFor(famousOpen));
+  $('changed-play').addEventListener('click', () => playRoundFor(app.entry));
+  $('skymap-lines').addEventListener('click', async () => {
+    const on = $('skymap-lines').getAttribute('aria-checked') !== 'true';
+    const { setConstellationLines } = await import('./skymap.js');
+    if (await setConstellationLines(on)) $('skymap-lines').setAttribute('aria-checked', String(on));
+  });
+  // The Key's layer switches (task B29): each shows or hides one layer of the 3D scene at once.
+  for (const button of document.querySelectorAll('#key-layers [data-layer]')) {
+    button.addEventListener('click', () => {
+      const on = button.getAttribute('aria-checked') !== 'true';
+      button.setAttribute('aria-checked', String(on));
+      setLayer(button.dataset.layer, on);
+    });
+  }
+  // Phones: the scene's chip and Key sit just above the target row, whose height this tracks.
+  new ResizeObserver(() => $('home-map').style.setProperty('--famous-h', `${$('famous').offsetHeight}px`)).observe($('famous'));
+  $('pop-close').addEventListener('click', () => closeFamous());
+  $('pop-see').addEventListener('click', () => {
+    const entry = famousOpen;
+    if (!entry || !isOpenable(entry)) return;
+    // Investigate opens over the scene (which pauses); Back returns to the whole view (space-ui onHome).
+    $('target-pop').hidden = true;
+    app.panel = 'see';
+    app.scrollToPanel = false;
+    setMode('blink');
+    openEntry(entry);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !famousOpen || document.body.dataset.page !== 'home' || document.querySelector('dialog[open]')) return;
+    event.stopPropagation();
+    closeFamous();
+  }, true);
+  // The header search closes once a search runs or Esc is pressed inside it.
+  $('head-search').addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && $('head-search').open) {
+      event.stopPropagation();
+      $('head-search').open = false;
+      $('head-search').querySelector('summary').focus();
+    }
+  });
+  $('head-search').addEventListener('toggle', () => {
+    if ($('head-search').open) $('search-input').focus({ preventScroll: true });
+  });
+}
+
 /** From Home: in the 3D view the camera flies to the target first, then its investigation opens. */
 function openFromHome(entry) {
   flyThen(entry.key, () => {
@@ -2487,17 +2776,22 @@ function startSpace() {
     nameOf: (key) => (findEntry(key) ? entryName(findEntry(key)) : null),
     nameOfEntry: entryName,
     distanceOf: (star) => formatDistance({ value: star.distance_pc, unit: 'pc' }),
-    // On wide screens the search console covers the left of the scene; the Sun is centred in the rest.
+    // Wide screens (task B29): the Famous targets rail covers the right of the scene; the Sun is centred in the rest
+    // (a negative inset is a covered strip on the right).
     insetLeft: () => (matchMedia('(min-width: 901px)').matches
-      ? Math.max(0, document.querySelector('.console-left').getBoundingClientRect().right - $('space3d').getBoundingClientRect().left)
+      ? -Math.max(0, $('space3d').getBoundingClientRect().right - $('famous').getBoundingClientRect().left)
       : 0),
-    // A challenge target opens its investigation (after the flight); any other body is only flown to (true = handled).
+    // A target's label or body: the camera flies there and its popup opens (task B29); any other body is only flown to.
     onPick: (key) => {
       const entry = findEntry(key);
       if (!entry || !isOpenable(entry)) return false;
-      openFromHome(entry);
+      selectFamous(entry);
       return true;
     },
+    // A click on empty space closes the popup and returns the camera to the whole view.
+    onEmpty: () => closeFamous(),
+    // Back from an investigation: the popup is gone and the camera returns to the whole view.
+    onHome: () => closeFamous({ quiet: true }),
   });
 }
 
@@ -2515,17 +2809,18 @@ function showInitialPage() {
 }
 
 async function start() {
+  // Task B32: data files carry the build version, like the modules and stylesheets (index.html's import map).
+  installVersionedFetch();
   applyTranslations();
   document.title = `${t('site.title')} · ${t('home.title')}`;
   showInitialPage();
   buildBandScale();
   buildArrays();
+  buildColourStep();
   buildFovOptions($('fov'));
   drawStarfield();
-  // The target list starts folded (task B12: the chips and the map already name every target); the colour key is
-  // open on wide screens only.
-  $('rail-toggle').setAttribute('aria-expanded', 'false');
-  $('map-key').open = matchMedia('(min-width: 1200px)').matches;
+  // The Key starts closed (task B29: a calmer first screen; the "Schematic · not to scale" chip stays on screen).
+  $('map-key').open = false;
   bindControls();
   setPressed($('modes'), 'mode', 'blink');
   $('composite').setAttribute('aria-pressed', 'true');
@@ -2538,16 +2833,21 @@ async function start() {
     indexLoaded: app.indexState?.state === 'ok',
     thumbsOf,
     onOpen: openFromHome,
+    onSelect: (entry) => selectFamous(entry),
+    board: app.scoreboard,
   });
+  renderFamousExtras();
+  // Task B35: more prepared objects, pictures only (all 17 open on the public site: checked on a github.io build).
+  renderExplore(app.allTargets.filter((entry) => entry.role === 'place'), thumbsOf, (entry) => selectFamous(entry));
+  placeExplore();
   delete $('page-home').dataset.loading;
   renderReserved((key) => (findEntry(key) ? entryName(findEntry(key)) : null));
   startSpace();
   startBlinking();
   applyLocation();
   if (app.page === 'home' || app.page === 'investigate') homeShown();
-  // The tour starts by itself once per browser, on a plain visit to Home.
-  const storage = browserStorage();
-  if (shouldAutoStart({ storage, route: parseRoute(location.search) })) runTour(tourActions, { storage });
+  // Task B29: the guided tour no longer starts by itself; the hint over the Solar System guides a first visit, and
+  // the tour stays under More ("Guided tour").
 }
 
 start().catch((error) => {

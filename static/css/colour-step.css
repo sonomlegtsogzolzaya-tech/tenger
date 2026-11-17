@@ -1,0 +1,17 @@
+/* Task B31: the Colour slider under the picture (All · D1–D6), next to Contrast. A separate file so the Home work in
+   style.css stays apart. The names under the track line up with the slider's seven stops. */
+.colour-step-control { display: grid; gap: 2px; flex: 1 1 380px; min-width: 0; max-width: 560px; }
+.colour-step-line { margin: 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.colour-step-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; min-width: 0; }
+.colour-step-row label { font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.colour-step-track { position: relative; flex: 1 1 200px; min-width: 0; display: grid; }
+.colour-step-track input[type="range"] { width: 100%; height: 30px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.colour-step-names { display: flex; justify-content: space-between; padding: 0 2px; font: 600 11px/1.2 var(--font-mono); color: var(--muted); }
+.colour-step-names span { min-width: 0; text-align: center; }
+.colour-step-value { font-size: 12.5px; color: var(--text); white-space: nowrap; min-width: 15ch; }
+.colour-step-control.is-single { opacity: 0.55; }
+.colour-step-control.is-single input[type="range"] { cursor: not-allowed; }
+@media (max-width: 720px) {
+  .colour-step-control { flex: 1 1 100%; max-width: none; }
+  .colour-step-value { min-width: 0; }
+}

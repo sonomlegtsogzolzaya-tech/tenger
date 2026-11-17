@@ -98,6 +98,8 @@ function fromIndex(target, preset) {
     prediction: {
       status: target.prediction?.status ?? null,
       trialIds: Array.isArray(target.prediction?.trial_ids) ? target.prediction.trial_ids : [],
+      // Open (blind) forecasts not yet checked (task B29: the Famous targets line says "our blind forecast").
+      openForecastIds: Array.isArray(target.prediction?.open_forecast_ids) ? target.prediction.open_forecast_ids : [],
     },
     centre,
     fov: footprint?.fov_deg ?? preset?.fov ?? null,

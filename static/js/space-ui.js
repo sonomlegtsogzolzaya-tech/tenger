@@ -71,14 +71,17 @@ function setMode(mode, { shown = mode === '2d' } = {}) {
   }
   // The button names the other view than the one on screen: "3D view" also while the 3D scene is still waiting
   // to start (the 2D map is what the visitor sees then).
-  $('space-toggle').textContent = t(document.body.classList.contains('space-3d') ? 'space.view2d' : 'space.view3d');
+  const other = document.body.classList.contains('space-3d') ? 'space.view2d' : 'space.view3d';
+  $('space-toggle').textContent = t(`${other}Short`);
+  $('space-toggle').setAttribute('aria-label', t(other));
+  $('space-toggle').title = t(other);
 }
 
 function stop3d() {
   state.pauseWatch?.disconnect();
   state.pauseWatch = null;
-  state.hero?.dispose();
-  state.hero = null;
+  state.auto?.dispose();
+  state.auto = null;
   state.time?.dispose();
   state.time = null;
   state.focus?.dispose();
@@ -87,50 +90,91 @@ function stop3d() {
   state.controller = null;
 }
 
-// ---------- Home's first screen over the live scene (task B25) ----------
+// ---------- Home is the Solar System, moving on its own (task B29) ----------
 
-/** The speed step the first screen runs at: one day per second, a gentle forward drift. */
-const HERO_STEP = 4;
+/** The speed step Home runs at with no interaction: one day per second, so the planets visibly orbit. */
+export const AUTO_STEP = 4;
+/** OrbitControls' autoRotateSpeed 1 turns once a minute: 0.5 is one turn in about two minutes. */
+export const AUTO_TURN_SPEED = 0.5;
+/** After the last drag, wheel or touch on the scene, the slow turn resumes this much later. */
+export const RESUME_MS = 5000;
 
 /**
- * While at least half of the first screen is in view (and the visitor is not exploring), the scene turns slowly and
- * time drifts forward; reduced motion keeps a still frame. Off screen or in a hidden tab nothing moves (the time
- * control already waits, and without turning the scene draws no frames). Phones: "Explore in 3D" opens the scene
- * full screen with the time control and Fly to; Close (or Esc) returns.
+ * Whether the scene turns by itself now. Pure, so the rules are testable: only with the Auto rotate switch on (off at
+ * the start under reduced motion), never while the visitor is handling the scene or a target is chosen, and never while
+ * Home is not what the visitor sees (another page, an investigation over it, the scene scrolled off, a hidden tab).
  */
-function watchHero(controller, time) {
-  const hero = $('home-hero');
-  const home = $('page-home');
+export function shouldTurn({ on, interacting, selected, onHome, inView, hidden }) {
+  return Boolean(on) && !interacting && !selected && onHome && inView && !hidden;
+}
+
+/**
+ * Home's motion: time runs at one day per second and the scene turns slowly; a drag takes over, and the turn resumes
+ * 5 s after the last interaction. Reduced motion keeps a still frame. Phones: "Explore in 3D" opens the scene full
+ * screen with the time control and Fly to; Close (or Esc) returns.
+ */
+function watchAuto(controller, time) {
+  const host = $('space3d');
+  const stage = $('home-map');
   const reduced = prefersReducedMotion();
-  let on = false;
-  let saved = null;
-  let wasLive = false;
-  let ratio = 0;
-  const apply = () => {
-    const wanted = ratio >= 0.5 && document.body.dataset.page === 'home' && !document.body.classList.contains('exploring');
-    if (wanted === on) return;
-    on = wanted;
-    home.classList.toggle('hero-mode', on);
-    controller.heroMode(on, { rotate: !reduced });
-    if (!reduced && on) {
-      saved = time.step();
-      wasLive = time.isLive();
-      time.setStep(HERO_STEP);
-    } else if (!reduced && saved !== null) {
-      // Back to what the visitor had: live time again if it was live, else their speed.
-      if (wasLive) time.goLive();
-      else time.setStep(saved);
-      saved = null;
-    }
-    controller.relayout();
-  };
-  const observer = new IntersectionObserver((entries) => {
-    ratio = entries[entries.length - 1].intersectionRatio;
+  // The Auto rotate switch (task B29): on by default, off under reduced motion (a still frame); it runs or stops both
+  // the camera's turn and the time.
+  const toggle = $('auto-rotate');
+  const facts = { on: !reduced, interacting: false, selected: false, inView: true };
+  let turning = null;
+  let resumeTimer = 0;
+  if (facts.on) time.setStep(AUTO_STEP);
+  else time.setMoving(false);
+  toggle.setAttribute('aria-checked', String(facts.on));
+  const onToggle = () => {
+    facts.on = !facts.on;
+    toggle.setAttribute('aria-checked', String(facts.on));
+    if (facts.on && time.step() <= 0) time.setStep(AUTO_STEP);
+    time.setMoving(facts.on);
     apply();
-  }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
-  observer.observe(hero);
-  const pageWatch = new MutationObserver(apply);
-  pageWatch.observe(document.body, { attributes: true, attributeFilter: ['data-page', 'class'] });
+  };
+  toggle.addEventListener('click', onToggle);
+  const apply = () => {
+    const on = shouldTurn({
+      on: facts.on, interacting: facts.interacting, selected: facts.selected,
+      onHome: document.body.dataset.page === 'home', inView: facts.inView, hidden: document.hidden,
+    });
+    if (on === turning) return;
+    turning = on;
+    controller.autoTurn(on, AUTO_TURN_SPEED);
+  };
+  const touched = () => {
+    facts.interacting = true;
+    apply();
+    clearTimeout(resumeTimer);
+    resumeTimer = setTimeout(() => {
+      facts.interacting = false;
+      apply();
+    }, RESUME_MS);
+  };
+  const onMove = (event) => {
+    if (event.buttons) touched();
+  };
+  for (const name of ['pointerdown', 'wheel', 'touchstart']) host.addEventListener(name, touched, { passive: true });
+  host.addEventListener('pointermove', onMove, { passive: true });
+  // Page, view and tab changes are also caught here, cheaply (apply changes nothing when the answer is the same).
+  const poll = setInterval(apply, 250);
+  const observer = new IntersectionObserver((entries) => {
+    facts.inView = entries[entries.length - 1].intersectionRatio >= 0.5;
+    apply();
+  }, { threshold: [0, 0.5, 1] });
+  observer.observe(stage);
+  let page = document.body.dataset.page;
+  const pageWatch = new MutationObserver(() => {
+    const now = document.body.dataset.page;
+    // Back from an investigation: the popup is closed and the camera returns to the whole view.
+    if (now === 'home' && page === 'investigate') state.hooks.onHome?.();
+    page = now;
+    apply();
+  });
+  pageWatch.observe(document.body, { attributes: true, attributeFilter: ['data-page'] });
+  document.addEventListener('visibilitychange', apply);
+  apply();
 
   const explore = $('hero-explore');
   const close = $('space-close');
@@ -154,22 +198,59 @@ function watchHero(controller, time) {
   explore.addEventListener('click', onExplore);
   close.addEventListener('click', onClose);
   document.addEventListener('keydown', onKey, true);
-  // Phones: the first screen's height places the scene behind it.
-  const sizeObserver = new ResizeObserver(() => home.style.setProperty('--hero-h', `${hero.offsetHeight}px`));
-  sizeObserver.observe(hero);
   return {
+    select(on) {
+      facts.selected = on;
+      apply();
+    },
     dispose() {
+      clearTimeout(resumeTimer);
+      clearInterval(poll);
+      toggle.removeEventListener('click', onToggle);
       observer.disconnect();
       pageWatch.disconnect();
-      sizeObserver.disconnect();
+      for (const name of ['pointerdown', 'wheel', 'touchstart']) host.removeEventListener(name, touched);
+      host.removeEventListener('pointermove', onMove);
+      document.removeEventListener('visibilitychange', apply);
       explore.removeEventListener('click', onExplore);
       close.removeEventListener('click', onClose);
       document.removeEventListener('keydown', onKey, true);
       explore.hidden = true;
       document.body.classList.remove('exploring');
-      home.classList.remove('hero-mode');
+      controller.autoTurn(false);
     },
   };
+}
+
+/** Task B29: the Key's layer switches and the type filter, kept here so they hold before the 3D view starts too. */
+const view = { layers: {}, filter: null, targets: new Set() };
+
+export function setLayer(name, on) {
+  view.layers[name] = on;
+  state.controller?.setLayer(name, on);
+}
+
+/** keys: the targets of the chosen type (a Set), or null for all; targets: every Famous target's key. */
+export function setFilter(keys, targets) {
+  view.filter = keys;
+  view.targets = targets;
+  state.controller?.dimExcept(keys, targets);
+}
+
+/** A Famous target chosen (task B29): the turn stops, the camera flies to it and its label is highlighted. */
+export function selectTarget(key) {
+  if (!state.controller) return;
+  state.auto?.select(true);
+  state.controller.highlight(key);
+  if (state.controller.has(key)) state.controller.flyTo(key);
+}
+
+/** The popup closed: the highlight goes, the camera returns to the whole view and the motion resumes. */
+export function releaseTarget() {
+  if (!state.controller) return;
+  state.controller.highlight(null);
+  state.controller.reset();
+  state.auto?.select(false);
 }
 
 async function start3d() {
@@ -196,14 +277,13 @@ async function start3d() {
         distanceOf: hooks.distanceOf,
         labelOf: (key, values) => t(key.startsWith('planet.') ? key : `space.${key}`, values),
         insetLeft: hooks.insetLeft,
-        // No label shows under these panels (on phones they sit below the scene, so none of them counts).
+        // No label shows under these panels (task B29: the title block, the Famous targets and the popup too).
         blockers: () => [
-          document.querySelector('.console-left'), $('space-tools'), $('space-fly-list'), $('space-hud'), $('space-time'),
+          $('home-hero'), $('famous'), $('target-pop'), $('space-tools'), $('space-fly-list'), $('space-time'),
           $('map-key'), document.querySelector('.map-caption.space-3d-only'),
-          // The first screen's text (task B25): no label behind it.
-          document.querySelector('.page-home.hero-mode .hero-inner'),
         ],
         onPick: (key) => hooks.onPick(key),
+        onEmpty: () => hooks.onEmpty?.(),
         onNine: (kind) => state.focus?.nine(kind),
         onHud: ({ target }) => {
           $('space-target').textContent = t('space.target', { name: target });
@@ -231,7 +311,9 @@ async function start3d() {
       controller.resize();
       state.time = createTimeControl({ controller, host: $('space3d'), reducedMotion: prefersReducedMotion() });
       state.focus = createFocusControl({ controller });
-      state.hero = watchHero(controller, state.time);
+      state.auto = watchAuto(controller, state.time);
+      for (const [name, on] of Object.entries(view.layers)) controller.setLayer(name, on);
+      controller.dimExcept(view.filter, view.targets);
       const unplaced = hooks.entries().filter((entry) => entry.key && !controller.has(entry.key)).map(hooks.nameOfEntry);
       showNote(scene ? (unplaced.length ? 'space.unplaced' : null) : 'space.noSceneFile', { names: unplaced.join(', ') });
     } catch (error) {
@@ -282,7 +364,7 @@ export function initSpace(hooks) {
 }
 
 /** After the page has loaded and stayed idle this long, the 3D view starts even without an interaction. */
-export const IDLE_START_MS = 1200;
+export const IDLE_START_MS = 300;
 const WAKE_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'];
 
 /**
@@ -314,3 +396,8 @@ export function flyThen(key, then) {
 }
 
 export const spaceMode = () => state.mode;
+
+/** Task B36: the scene draws nothing while the Sky map covers Home (or an investigation does). */
+export function setScenePaused(on) {
+  state.controller?.setPaused(Boolean(on) || document.body.dataset.page === 'investigate');
+}

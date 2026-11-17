@@ -4,26 +4,27 @@
 <meta charset="utf-8">
 <title>Vestigium title card</title>
 <!-- The 30-second video's last shot (tasks B9, B21): the site's own stylesheet, fonts, dark background and logo file
-     (static/img/logo.svg, the one place the logo lives), plain text. -->
+     (static/img/vestigium-logo-white.png, the team's logo), plain text. -->
 <link rel="stylesheet" href="../../../../static/css/style.css">
 <style>
   html, body { width: 1280px; height: 720px; overflow: hidden; }
   body { display: grid; place-items: center; background: var(--bg); }
   .card { display: grid; gap: 22px; justify-items: center; text-align: center; }
-  .card .brand-mark { width: 96px; height: 96px; }
+  .card .brand-logo { height: 92px; width: auto; }
   .card h1 { font: 700 64px/1.05 var(--font-head); letter-spacing: -0.01em; color: var(--text); }
   .card .url { font: 600 30px/1.2 var(--font-mono); color: var(--accent); }
   .card .team { font: 500 24px/1.4 var(--font-text); color: var(--text); max-width: 1100px; }
   .card .data { font: 400 21px/1.4 var(--font-text); color: var(--muted); }
+  .card .also { font: 500 18px/1.4 var(--font-text); color: var(--hypothetical); }
 </style>
 </head>
 <body>
   <div class="card">
-    <img class="brand-mark" src="../../../../static/img/logo.svg" alt="" width="96" height="96">
-    <h1>Vestigium</h1>
+    <h1><img class="brand-logo" src="../../../../static/img/vestigium-logo-white.png" alt="Vestigium" width="373" height="92"></h1>
     <p class="url">nama2323.github.io/tenger</p>
     <p class="team">Narmandakh Garam, Erkhes Orgil, Anu-Ujin Bayarbaatar, Sonomlegtsog Zolzaya</p>
     <p class="data">Data: NASA SPHEREx via NASA/IPAC IRSA</p>
+    <p class="also">Also inside: blind forecasts and a Planet X test</p>
   </div>
 </body>
 </html>

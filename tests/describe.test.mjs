@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { FULL_MOON_ARCSEC, formatLightYears, lightYears, moonShare, plainLine } from '../static/js/describe.js';
+import { countUpShown, FULL_MOON_ARCSEC, formatLightYears, lightYears, moonShare, plainLine } from '../static/js/describe.js';
 
 test('the plain line says what a target is and how far away, from its kind and distance', () => {
   assert.equal(plainLine({ kind: 'faststar', distance: { value: 1.83, unit: 'pc' } }), 'A fast-moving star, 6 light-years away.');
@@ -33,4 +33,20 @@ test('a shift is compared with the full Moon in plain words', () => {
   assert.equal(moonShare(5), 'far less than a hundredth of the full Moon’s width');
   assert.equal(moonShare(0), null);
   assert.equal(moonShare(Number.NaN), null);
+});
+
+// Task B28: the "Estimate motion" big number counts up from 0 and never shows a value below 0 or past the result.
+test('the count-up starts at 0, ends on the value and never goes below 0 or past it', () => {
+  const value = 9.94;
+  assert.equal(countUpShown(value, 0, 800), 0);
+  assert.equal(countUpShown(value, -16, 800), 0); // a frame time slightly before the start
+  assert.equal(countUpShown(value, 800, 800), value);
+  assert.equal(countUpShown(value, 5000, 800), value);
+  assert.equal(countUpShown(value, 100, 0), value); // no animation: the value at once
+  let last = 0;
+  for (let ms = -50; ms <= 900; ms += 7) {
+    const shown = countUpShown(value, ms, 800);
+    assert.ok(shown >= 0 && shown <= value && shown >= last, `${ms} ms: ${shown}`);
+    last = shown;
+  }
 });
