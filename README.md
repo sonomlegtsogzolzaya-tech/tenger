@@ -187,7 +187,3 @@ commit times are a few minutes later.
 
 Planning and audit were done with OpenAI Codex and Claude. The implementation was written with Claude
 Code. The team reviewed the work, made the decisions and is responsible for the result.
-
-## Licence
-
-Parts of the code come from SPHEREx Blink (https://github.com/pythonhack000/spherex-blink, MIT licence); see LICENSE.
