@@ -150,7 +150,6 @@ export function renderAbout() {
     el('a', { href: font.licence, text: t('font.licence') }),
   ])));
   $('about-team').replaceChildren(...TEAM.map((key) => el('li', { text: t(key) })));
-  $('about-ai').replaceChildren(...AI_DISCLOSURE.map((key) => el('li', { text: t(key) })));
 }
 
 /**
