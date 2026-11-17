@@ -2,6 +2,8 @@
 
 **NASA Space Apps Challenge — Global Nominee**
 
+**Website:** [vestigium-82p.pages.dev](https://vestigium-82p.pages.dev)
+
 The repository and the web address keep the project's earlier working name, `tenger`.
 
 A web app for the NASA Space Apps 2026 challenge "Planet X and SPHEREx". It shows real SPHEREx
