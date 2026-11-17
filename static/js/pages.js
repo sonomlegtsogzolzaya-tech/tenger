@@ -1,5 +1,5 @@
 // About: what TENGER is, its methods and limits, data credits with DOIs and the required acknowledgements,
-// software and font licences, the base project, the team and the AI disclosure.
+// software and font licences, the base project, and the team.
 // (The game is in game-ui.js, lessons in learn-ui.js.) Every sentence comes from the English resource;
 // only proper names, licence identifiers and URLs live here.
 import { $, details, el } from './dom.js';
